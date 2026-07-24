@@ -1,0 +1,51 @@
+.chip-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 6px 28px 6px 12px;
+  border: 1px solid var(--qp-line-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237a726a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  color: var(--qp-ink);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.chip-select.active {
+  background-color: var(--qp-ink);
+  color: var(--qp-bg);
+  border-color: var(--qp-ink);
+}
+.chip-select:hover {
+  background-color: var(--qp-bg-soft);
+}
+.chip-month {
+  padding: 6px 12px;
+  border: 1px solid var(--qp-line-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  background: transparent;
+  color: var(--qp-ink);
+}
+.chip-month.active {
+  background: var(--qp-ink);
+  color: var(--qp-bg);
+  border-color: var(--qp-ink);
+}
+.clear-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--qp-line-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--qp-mute);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  background: transparent;
+}
+.clear-btn:hover {
+  color: var(--qp-ink);
+}

@@ -1,0 +1,22 @@
+{
+  "name": "journal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Trading journal personal — Angular 21 + NestJS + PostgreSQL",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,js,json,md,html,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,html,css}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,421 @@
+<div class="flex h-full flex-col overflow-hidden">
+  <header
+    class="flex items-center justify-between border-b px-8 py-5"
+    style="border-color: var(--qp-line);"
+  >
+    <div>
+      <div class="uplabel">Tracker</div>
+      <h1 class="serif text-[26px] leading-tight">Accounts</h1>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <select
+        class="field-select"
+        [ngModel]="selectedType()"
+        (ngModelChange)="onTypeChange($event)"
+        aria-label="Filtrar por tipo"
+      >
+        <option value="">Type</option>
+        <option value="EVALUATION">Evaluation</option>
+        <option value="LIVE">Live</option>
+      </select>
+      <select
+        class="field-select"
+        [ngModel]="selectedStatus()"
+        (ngModelChange)="onStatusChange($event)"
+        aria-label="Filtrar por estado"
+      >
+        <option value="">Status</option>
+        <option value="ACTIVE">Active</option>
+        <option value="SUSPENDED">Suspended</option>
+      </select>
+      <button type="button" class="pill pill-solid" (click)="openCreateModal()">
+        Create account
+      </button>
+    </div>
+  </header>
+
+  <div class="accounts-scroll flex-1 px-8 py-6">
+    <div class="accounts-table-panel">
+      <table class="accounts-table">
+        <thead>
+          <tr>
+            <th
+              class="sortable"
+              tabindex="0"
+              (click)="sortBy('name')"
+              (keydown)="onSortKeyDown($event, 'name')"
+            >
+              Name <span class="sort-indicator">{{ sortIndicator('name') }}</span>
+            </th>
+            <th
+              class="sortable"
+              tabindex="0"
+              (click)="sortBy('type')"
+              (keydown)="onSortKeyDown($event, 'type')"
+            >
+              Type <span class="sort-indicator">{{ sortIndicator('type') }}</span>
+            </th>
+            <th>Status</th>
+            <th>Company</th>
+            <th class="num">Total Expenses</th>
+            <th class="num">Total Profits</th>
+            <th class="num">Net Profit</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (account of filteredAccounts(); track account.name) {
+            <tr class="account-row">
+              <td class="account-name">{{ account.name }}</td>
+              <td>
+                <span [class]="getTypeBadgeClass(account.type)">{{ account.type }}</span>
+              </td>
+              <td>
+                <span class="status-indicator" [class]="getStatusClass(account.status)">
+                  <span class="status-dot"></span>
+                  {{ account.status }}
+                </span>
+              </td>
+              <td class="company-name">{{ account.company }}</td>
+              <td class="num">{{ formatUsd(account.totalExpenses) }}</td>
+              <td class="num">{{ formatUsd(account.totalProfits) }}</td>
+              <td class="num" [class]="getProfitClass(account.netProfit)">
+                {{ formatUsd(account.netProfit) }}
+              </td>
+              <td class="actions-col">
+                <button
+                  type="button"
+                  class="icon-btn"
+                  (click)="openActionModal(account)"
+                  aria-label="Acciones"
+                >
+                  <lucide-icon [name]="iconMore" class="h-4 w-4"></lucide-icon>
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty-row">No hay cuentas que coincidan con los filtros.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <dialog
+    #actionDialog
+    class="modal-panel panel"
+    (close)="onActionDialogClose()"
+    (click)="onDialogBackdropClick($event, actionDialog)"
+    (keydown)="onDialogKeyDown($event)"
+  >
+    <div class="modal-header">
+      <h3 class="serif text-[20px] leading-tight">Account Actions</h3>
+      <button type="button" class="icon-btn" (click)="closeActionModal()" aria-label="Cerrar">
+        <lucide-icon [name]="iconClose" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+    <div class="modal-body">
+      @if (selectedAccount(); as acc) {
+        <p class="modal-subtitle">
+          Actions for: <strong>{{ acc.name }}</strong>
+        </p>
+        <div class="action-buttons">
+          @if (acc.status === 'ACTIVE') {
+            <button type="button" class="action-button suspend" (click)="suspendAccount()">
+              Suspend
+            </button>
+            <button type="button" class="action-button reset" (click)="openResetModal()">
+              Reset
+            </button>
+            @if (acc.type === 'EVALUATION') {
+              <button type="button" class="action-button activate" (click)="passEvaluation()">
+                Pass evaluation
+              </button>
+            }
+            @if (acc.type === 'LIVE') {
+              <button type="button" class="action-button withdraw" (click)="openWithdrawModal()">
+                Withdrawal
+              </button>
+            }
+          }
+          <button type="button" class="action-button delete" (click)="deleteAccount()">
+            Delete
+          </button>
+        </div>
+      }
+    </div>
+  </dialog>
+
+  <dialog
+    #resetDialog
+    class="modal-panel panel reset-modal"
+    (close)="onResetDialogClose()"
+    (click)="onDialogBackdropClick($event, resetDialog)"
+    (keydown)="onDialogKeyDown($event)"
+  >
+    <div class="modal-header">
+      <div>
+        <div class="uplabel">Account</div>
+        <h3 class="serif text-[20px] leading-tight">Reset</h3>
+      </div>
+      <button type="button" class="icon-btn" (click)="closeResetModal()" aria-label="Cerrar">
+        <lucide-icon [name]="iconClose" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+        <div class="modal-body">
+          <form (ngSubmit)="confirmReset()">
+            <div class="field">
+              <label class="uplabel" for="reset-name">Name</label>
+              <input
+                id="reset-name"
+                class="field-input"
+                type="text"
+                [value]="resetForm().name"
+                readonly
+              />
+            </div>
+
+            <div class="field mt-4">
+              <label class="uplabel" for="reset-price">Price (USD)</label>
+              <input
+                id="reset-price"
+                class="field-input"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                [ngModel]="resetForm().price"
+                (ngModelChange)="onResetPriceChange($event)"
+                name="resetPrice"
+                required
+              />
+            </div>
+
+            <div class="field mt-4">
+              <label class="uplabel" for="reset-date">Date</label>
+              <input
+                id="reset-date"
+                class="field-input"
+                type="date"
+                [ngModel]="resetForm().date"
+                (ngModelChange)="onResetDateChange($event)"
+                name="resetDate"
+                required
+              />
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="pill" (click)="closeResetModal()">Cancel</button>
+              <button
+                type="submit"
+                class="pill pill-solid"
+                [disabled]="!resetForm().price || !resetForm().date"
+              >
+                Reset
+              </button>
+            </div>
+          </form>
+        </div>
+  </dialog>
+
+  <dialog
+    #withdrawDialog
+    class="modal-panel panel reset-modal"
+    (close)="onWithdrawDialogClose()"
+    (click)="onDialogBackdropClick($event, withdrawDialog)"
+    (keydown)="onDialogKeyDown($event)"
+  >
+    <div class="modal-header">
+      <div>
+        <div class="uplabel">Account</div>
+        <h3 class="serif text-[20px] leading-tight">Withdrawal</h3>
+      </div>
+      <button type="button" class="icon-btn" (click)="closeWithdrawModal()" aria-label="Cerrar">
+        <lucide-icon [name]="iconClose" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form (ngSubmit)="confirmWithdraw()">
+        <div class="field">
+          <label class="uplabel" for="withdraw-name">Name</label>
+          <input
+            id="withdraw-name"
+            class="field-input"
+            type="text"
+            [value]="withdrawForm().name"
+            readonly
+          />
+        </div>
+
+        <div class="field mt-4">
+          <label class="uplabel" for="withdraw-amount">Amount (USD)</label>
+          <input
+            id="withdraw-amount"
+            class="field-input"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            [ngModel]="withdrawForm().amount"
+            (ngModelChange)="onWithdrawAmountChange($event)"
+            name="withdrawAmount"
+            required
+          />
+        </div>
+
+        <div class="field mt-4">
+          <label class="uplabel" for="withdraw-date">Date</label>
+          <input
+            id="withdraw-date"
+            class="field-input"
+            type="date"
+            [ngModel]="withdrawForm().date"
+            (ngModelChange)="onWithdrawDateChange($event)"
+            name="withdrawDate"
+            required
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="pill" (click)="closeWithdrawModal()">Cancel</button>
+          <button
+            type="submit"
+            class="pill pill-solid"
+            [disabled]="!withdrawForm().amount || !withdrawForm().date"
+          >
+            Withdraw
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog
+    #createDialog
+    class="modal-panel panel reset-modal"
+    (close)="onCreateDialogClose()"
+    (click)="onDialogBackdropClick($event, createDialog)"
+    (keydown)="onDialogKeyDown($event)"
+  >
+    <div class="modal-header">
+      <div>
+        <div class="uplabel">Tracker</div>
+        <h3 class="serif text-[20px] leading-tight">Create account</h3>
+      </div>
+      <button type="button" class="icon-btn" (click)="closeCreateModal()" aria-label="Cerrar">
+        <lucide-icon [name]="iconClose" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form (ngSubmit)="confirmCreate()">
+        <div class="field">
+          <label class="uplabel" for="create-name">Name</label>
+          <input
+            id="create-name"
+            class="field-input"
+            type="text"
+            [ngModel]="createForm().name"
+            (ngModelChange)="onCreateFieldChange('name', $event)"
+            name="createName"
+            placeholder="Ej: TPT1455317"
+            maxlength="120"
+            required
+          />
+        </div>
+
+        <div class="field mt-4">
+          <label class="uplabel" for="create-type">Type</label>
+          <select
+            id="create-type"
+            class="field-select"
+            [ngModel]="createForm().type"
+            (ngModelChange)="onCreateFieldChange('type', $event)"
+            name="createType"
+            required
+          >
+            <option value="EVALUATION">Evaluation</option>
+            <option value="LIVE">Live</option>
+          </select>
+        </div>
+
+        <div class="field mt-4">
+          <label class="uplabel" for="create-status">Status</label>
+          <select
+            id="create-status"
+            class="field-select"
+            [ngModel]="createForm().status"
+            (ngModelChange)="onCreateFieldChange('status', $event)"
+            name="createStatus"
+            required
+          >
+            <option value="ACTIVE">Active</option>
+            <option value="SUSPENDED">Suspended</option>
+          </select>
+        </div>
+
+        <div class="field mt-4">
+          <label class="uplabel" for="create-company">Company</label>
+          <input
+            id="create-company"
+            class="field-input"
+            type="text"
+            [ngModel]="createForm().company"
+            (ngModelChange)="onCreateFieldChange('company', $event)"
+            name="createCompany"
+            placeholder="Ej: Take Profit Trader"
+            maxlength="120"
+            required
+          />
+        </div>
+
+        <div class="field mt-4">
+          <label class="uplabel" for="create-expenses">Total Expenses (USD)</label>
+          <input
+            id="create-expenses"
+            class="field-input"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            [ngModel]="createForm().totalExpenses"
+            (ngModelChange)="onCreateNumberChange('totalExpenses', $event)"
+            name="createExpenses"
+          />
+        </div>
+
+        <div class="field mt-4">
+          <label class="uplabel" for="create-profits">Total Profits (USD)</label>
+          <input
+            id="create-profits"
+            class="field-input"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            [ngModel]="createForm().totalProfits"
+            (ngModelChange)="onCreateNumberChange('totalProfits', $event)"
+            name="createProfits"
+          />
+        </div>
+
+        @if (createError(); as err) {
+          <p class="form-error mt-4">{{ err }}</p>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="pill" (click)="closeCreateModal()">Cancel</button>
+          <button
+            type="submit"
+            class="pill pill-solid"
+            [disabled]="!isCreateFormValid() || creating()"
+          >
+            {{ creating() ? 'Saving…' : 'Create' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+</div>

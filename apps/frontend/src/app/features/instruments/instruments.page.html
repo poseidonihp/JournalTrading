@@ -1,0 +1,263 @@
+<div class="flex h-full flex-col overflow-hidden">
+  <header
+    class="flex items-center justify-between border-b px-8 py-5"
+    style="border-color: var(--qp-line);"
+  >
+    <div>
+      <div class="uplabel">Workspace</div>
+      <h1 class="serif text-[26px] leading-tight">Instrumentos y comisiones</h1>
+    </div>
+    @if (!creating()) {
+      <button type="button" class="pill pill-solid" (click)="openCreate()">
+        <lucide-icon [name]="iconPlus" class="h-4 w-4"></lucide-icon>
+        Nuevo instrumento
+      </button>
+    }
+  </header>
+
+  <div class="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+    @if (error(); as e) {
+      <div class="card-panel p-3 text-sm" style="color: var(--qp-clay);">{{ e }}</div>
+    }
+
+    @if (creating()) {
+      <section class="card-panel p-5 max-w-3xl">
+        <h2 class="serif text-[18px] mb-3">Nuevo instrumento</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Símbolo</span>
+            <input
+              type="text"
+              [ngModel]="draftSymbol()"
+              (ngModelChange)="draftSymbol.set($event)"
+              class="px-3 py-2 rounded border text-sm uppercase"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm col-span-2 md:col-span-2">
+            <span class="uplabel">Nombre</span>
+            <input
+              type="text"
+              [ngModel]="draftName()"
+              (ngModelChange)="draftName.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Categoría</span>
+            <select
+              [ngModel]="draftCategory()"
+              (ngModelChange)="draftCategory.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            >
+              @for (c of categories; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Valor del punto</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              [ngModel]="draftPointValue()"
+              (ngModelChange)="draftPointValue.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Comisión por contrato</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              [ngModel]="draftFee()"
+              (ngModelChange)="draftFee.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Tick size</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              [ngModel]="draftTick()"
+              (ngModelChange)="draftTick.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Moneda</span>
+            <input
+              type="text"
+              maxlength="3"
+              [ngModel]="draftCurrency()"
+              (ngModelChange)="draftCurrency.set($event)"
+              class="px-3 py-2 rounded border text-sm uppercase"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button type="button" class="pill pill-solid" (click)="submitCreate()">
+            <lucide-icon [name]="iconSave" class="h-4 w-4"></lucide-icon>
+            Crear
+          </button>
+          <button type="button" class="pill" (click)="cancelCreate()">
+            <lucide-icon [name]="iconCancel" class="h-4 w-4"></lucide-icon>
+            Cancelar
+          </button>
+        </div>
+      </section>
+    }
+
+    <section class="card-panel p-5">
+      <h2 class="serif text-[18px] mb-3">Catálogo</h2>
+      @if (loading() && list().length === 0) {
+        <div class="text-sm" style="color: var(--qp-mute-2);">Cargando…</div>
+      } @else if (list().length === 0) {
+        <div class="text-sm" style="color: var(--qp-mute-2);">
+          Aún no hay instrumentos. Crea el primero arriba.
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left" style="color: var(--qp-mute-2);">
+                <th class="py-2 pr-3 uplabel font-normal">Símbolo</th>
+                <th class="py-2 pr-3 uplabel font-normal">Nombre</th>
+                <th class="py-2 pr-3 uplabel font-normal">Categoría</th>
+                <th class="py-2 pr-3 uplabel font-normal text-right">Valor del punto</th>
+                <th class="py-2 pr-3 uplabel font-normal text-right">Comisión / contrato</th>
+                <th class="py-2 pr-3 uplabel font-normal text-right">Tick size</th>
+                <th class="py-2 pr-3 uplabel font-normal">Moneda</th>
+                <th class="py-2 pr-3 uplabel font-normal text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y" style="border-color: var(--qp-line);">
+              @for (i of list(); track i.id) {
+                <tr>
+                  @if (editingId() === i.id) {
+                    <td class="py-2 pr-3">
+                      <input
+                        type="text"
+                        [ngModel]="editSymbol()"
+                        (ngModelChange)="editSymbol.set($event)"
+                        class="px-2 py-1 rounded border text-sm w-24 uppercase"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      />
+                    </td>
+                    <td class="py-2 pr-3">
+                      <input
+                        type="text"
+                        [ngModel]="editName()"
+                        (ngModelChange)="editName.set($event)"
+                        class="px-2 py-1 rounded border text-sm w-full"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      />
+                    </td>
+                    <td class="py-2 pr-3">
+                      <select
+                        [ngModel]="editCategory()"
+                        (ngModelChange)="editCategory.set($event)"
+                        class="px-2 py-1 rounded border text-sm"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      >
+                        @for (c of categories; track c) {
+                          <option [value]="c">{{ c }}</option>
+                        }
+                      </select>
+                    </td>
+                    <td class="py-2 pr-3">
+                      <input
+                        type="text"
+                        inputmode="decimal"
+                        [ngModel]="editPointValue()"
+                        (ngModelChange)="editPointValue.set($event)"
+                        class="px-2 py-1 rounded border text-sm w-24 text-right"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      />
+                    </td>
+                    <td class="py-2 pr-3">
+                      <input
+                        type="text"
+                        inputmode="decimal"
+                        [ngModel]="editFee()"
+                        (ngModelChange)="editFee.set($event)"
+                        class="px-2 py-1 rounded border text-sm w-24 text-right"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      />
+                    </td>
+                    <td class="py-2 pr-3">
+                      <input
+                        type="text"
+                        inputmode="decimal"
+                        [ngModel]="editTick()"
+                        (ngModelChange)="editTick.set($event)"
+                        class="px-2 py-1 rounded border text-sm w-24 text-right"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      />
+                    </td>
+                    <td class="py-2 pr-3">
+                      <input
+                        type="text"
+                        maxlength="3"
+                        [ngModel]="editCurrency()"
+                        (ngModelChange)="editCurrency.set($event)"
+                        class="px-2 py-1 rounded border text-sm w-16 uppercase"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      />
+                    </td>
+                    <td class="py-2 pr-3 text-right whitespace-nowrap">
+                      <button type="button" class="pill pill-solid text-xs" (click)="saveEdit(i)">
+                        <lucide-icon [name]="iconSave" class="h-3.5 w-3.5"></lucide-icon>
+                        Guardar
+                      </button>
+                      <button type="button" class="pill text-xs ml-1" (click)="cancelEdit()">
+                        Cancelar
+                      </button>
+                    </td>
+                  } @else {
+                    <td class="py-2 pr-3 font-semibold tracking-wide">{{ i.symbol }}</td>
+                    <td class="py-2 pr-3">{{ i.name }}</td>
+                    <td class="py-2 pr-3">
+                      <span class="badge-new">{{ i.category }}</span>
+                    </td>
+                    <td class="py-2 pr-3 text-right tabular-nums">{{ i.pointValue }}</td>
+                    <td class="py-2 pr-3 text-right tabular-nums">
+                      {{ i.defaultCommissionPerContract }} {{ i.currency }}
+                    </td>
+                    <td class="py-2 pr-3 text-right tabular-nums">{{ i.tickSize }}</td>
+                    <td class="py-2 pr-3">{{ i.currency }}</td>
+                    <td class="py-2 pr-3 text-right whitespace-nowrap">
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        (click)="startEdit(i)"
+                        aria-label="Editar"
+                      >
+                        <lucide-icon [name]="iconEdit" class="h-3.5 w-3.5"></lucide-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        (click)="remove(i)"
+                        aria-label="Eliminar"
+                      >
+                        <lucide-icon [name]="iconTrash" class="h-3.5 w-3.5"></lucide-icon>
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+</div>

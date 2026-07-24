@@ -1,0 +1,39 @@
+name: security-audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/package.json'
+      - pnpm-lock.yaml
+  pull_request:
+    paths:
+      - '**/package.json'
+      - pnpm-lock.yaml
+  schedule:
+    # Lunes 06:00 UTC: re-audita el lockfile aunque no haya cambios (CVEs nuevos).
+    - cron: '0 6 * * 1'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Falla el job ante vulnerabilidades de severidad alta o crítica en prod.
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high

@@ -1,0 +1,130 @@
+<div
+  class="shell-root flex h-screen w-screen overflow-hidden"
+  style="background: var(--qp-bg); color: var(--qp-ink);"
+>
+  @if (sidebarOpen()) {
+    <button
+      type="button"
+      class="sidebar-backdrop"
+      aria-label="Cerrar menú"
+      (click)="closeSidebar()"
+    ></button>
+  }
+  <aside
+    class="sidebar flex w-[232px] shrink-0 flex-col px-5 pb-6 pt-7"
+    [class.open]="sidebarOpen()"
+    style="background: var(--qp-bg-soft); border-right: 1px solid var(--qp-line);"
+    aria-label="Navegación principal"
+  >
+    <div class="serif text-[26px] leading-none">Journal</div>
+    <div class="uplabel mt-1.5 mb-7">v0.4.0 · Fase 4</div>
+
+    <button
+      type="button"
+      (click)="openNewTrade()"
+      class="pill pill-solid mb-7 justify-between"
+      style="display: flex; padding: 11px 14px; border-radius: 8px;"
+    >
+      <span class="flex items-center gap-2">
+        <lucide-icon [name]="iconPlus" class="h-4 w-4"></lucide-icon>
+        Nuevo trade
+      </span>
+      <span class="text-[10px] opacity-60">⌘ N</span>
+    </button>
+
+    <div class="uplabel mb-2.5 pl-1">Workspace</div>
+    <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+      @for (item of nav; track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: false }"
+          [class.pointer-events-none]="item.disabled"
+          [class.opacity-50]="item.disabled"
+          (click)="closeSidebar()"
+          class="nav-item"
+        >
+          <span class="flex-1">{{ item.label }}</span>
+          @if (item.badge === 'NEW') {
+            <span class="badge-new">NEW</span>
+          } @else if (item.badge === 'BETA') {
+            <span class="badge-beta">BETA</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="mt-5 flex items-center gap-2.5 border-t pt-5" style="border-color: var(--qp-line);">
+      <button type="button" [cdkMenuTriggerFor]="userMenu" class="avatar" aria-label="Usuario">
+        {{ initial() }}
+      </button>
+      <div class="flex flex-1 flex-col overflow-hidden">
+        <span class="truncate text-[12px] font-medium">{{ user()?.displayName ?? 'Diego' }}</span>
+        <span class="truncate text-[10px]" style="color: var(--qp-mute-2);">
+          {{ accountLabel() }}
+        </span>
+      </div>
+      <button
+        type="button"
+        (click)="theme.toggle()"
+        class="icon-btn"
+        style="width: 28px; height: 28px;"
+        [attr.aria-label]="theme.isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+      >
+        @if (theme.isDark()) {
+          <lucide-icon [name]="iconSun" class="h-3.5 w-3.5"></lucide-icon>
+        } @else {
+          <lucide-icon [name]="iconMoon" class="h-3.5 w-3.5"></lucide-icon>
+        }
+      </button>
+    </div>
+
+    <ng-template #userMenu>
+      <ul
+        cdkMenu
+        class="z-50 mt-1 min-w-48 rounded-md p-1 shadow-lg"
+        style="background: var(--qp-bg-soft); border: 1px solid var(--qp-line-strong);"
+      >
+        <li class="px-2 py-1.5 text-xs" style="color: var(--qp-mute);">
+          <div class="font-medium" style="color: var(--qp-ink);">{{ user()?.displayName }}</div>
+          <div class="truncate">{{ user()?.email }}</div>
+        </li>
+        <li class="my-1 h-px" style="background: var(--qp-line);"></li>
+        <li class="px-2 py-1.5">
+          <app-account-selector />
+        </li>
+        <li class="my-1 h-px" style="background: var(--qp-line);"></li>
+        <li
+          cdkMenuItem
+          (cdkMenuItemTriggered)="logout()"
+          class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm"
+          style="color: var(--qp-clay);"
+        >
+          <lucide-icon [name]="iconLogout" class="h-3.5 w-3.5"></lucide-icon>
+          <span>Cerrar sesión</span>
+        </li>
+      </ul>
+    </ng-template>
+  </aside>
+
+  <main class="flex flex-1 flex-col overflow-hidden">
+    <!-- Barra superior sólo en móvil: abre el drawer de navegación. -->
+    <div
+      class="mobile-bar flex items-center gap-3 px-4 py-3"
+      style="background: var(--qp-bg-soft); border-bottom: 1px solid var(--qp-line);"
+    >
+      <button
+        type="button"
+        (click)="toggleSidebar()"
+        class="icon-btn"
+        style="width: 34px; height: 34px;"
+        aria-label="Abrir menú de navegación"
+        [attr.aria-expanded]="sidebarOpen()"
+      >
+        <lucide-icon [name]="iconMenu" class="h-4 w-4"></lucide-icon>
+      </button>
+      <span class="serif text-[20px] leading-none">Journal</span>
+    </div>
+    <router-outlet />
+  </main>
+</div>

@@ -1,0 +1,72 @@
+// =============================================================================
+// Tokens de color — fuente única de verdad.
+// Los valores RGB (sin función) se exponen como triples "R G B" para que Tailwind
+// los consuma vía `rgb(var(--color-xxx) / <alpha-value>)`. Los `--qp-*` van en
+// hex/rgba directos porque no se usan con la sintaxis de alfa de Tailwind.
+// =============================================================================
+
+:root {
+  // -- Paleta TradeZella (modo claro) ----------------------------------------
+  --color-bg: 242 243 247;
+  --color-bg-elevated: 255 255 255;
+  --color-bg-sidebar: 255 255 255;
+  --color-fg: 17 20 28;
+  --color-fg-muted: 110 117 132;
+  --color-border: 222 226 234;
+  --color-border-strong: 198 204 216;
+  --color-primary: 124 92 255;
+  --color-primary-hover: 110 78 240;
+  --color-primary-fg: 255 255 255;
+  --color-success: 22 163 116;
+  --color-success-soft: 209 244 230;
+  --color-danger: 220 67 67;
+  --color-danger-soft: 252 222 222;
+  --color-warning: 234 168 50;
+  --color-info: 56 130 222;
+
+  // -- Paleta Quartz-Paper (modo claro) --------------------------------------
+  --qp-bg: #f5f1e8;
+  --qp-bg-soft: #f0ebdf;
+  --qp-bg-active: #e5ddc9;
+  --qp-ink: #1a1815;
+  --qp-ink-soft: #5b5249;
+  --qp-mute: #7a726a;
+  --qp-mute-2: #9a8f82;
+  --qp-line: rgba(26, 24, 21, 0.08);
+  --qp-line-strong: rgba(26, 24, 21, 0.14);
+  --qp-sage: #4a6b4f;
+  --qp-clay: #b5503c;
+}
+
+.dark {
+  // -- Paleta TradeZella (modo oscuro) ---------------------------------------
+  --color-bg: 10 12 17;
+  --color-bg-elevated: 17 20 27;
+  --color-bg-sidebar: 12 14 20;
+  --color-fg: 232 234 240;
+  --color-fg-muted: 138 146 162;
+  --color-border: 30 34 44;
+  --color-border-strong: 48 54 68;
+  --color-primary: 139 109 255;
+  --color-primary-hover: 124 92 255;
+  --color-primary-fg: 255 255 255;
+  --color-success: 46 196 142;
+  --color-success-soft: 26 60 48;
+  --color-danger: 236 92 92;
+  --color-danger-soft: 64 28 30;
+  --color-warning: 234 168 50;
+  --color-info: 96 165 250;
+
+  // -- Paleta Quartz-Paper (modo oscuro) -------------------------------------
+  --qp-bg: #14110d;
+  --qp-bg-soft: #1c1812;
+  --qp-bg-active: #2a2419;
+  --qp-ink: #f0ebdf;
+  --qp-ink-soft: #c8bfb0;
+  --qp-mute: #9a8f82;
+  --qp-mute-2: #7a726a;
+  --qp-line: rgba(245, 241, 232, 0.08);
+  --qp-line-strong: rgba(245, 241, 232, 0.16);
+  --qp-sage: #7fae84;
+  --qp-clay: #d68267;
+}

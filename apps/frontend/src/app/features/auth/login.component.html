@@ -1,0 +1,47 @@
+<div class="flex min-h-screen items-center justify-center px-4">
+  <div class="panel w-full max-w-md rounded-xl px-8 pb-8 pt-9">
+    <div class="mb-8 flex flex-col gap-1">
+      <div class="serif text-[36px] leading-none">Journal</div>
+      <div class="uplabel">v0.3.0 · Fase 3</div>
+      <p class="mt-4 text-[13px]" style="color: var(--qp-mute)">Inicia sesión para continuar.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+      <journal-field label="Email">
+        <input
+          type="email"
+          autocomplete="username"
+          formControlName="email"
+          class="field-input"
+          placeholder="dev@journal.local"
+        />
+      </journal-field>
+      <journal-field label="Password">
+        <input
+          type="password"
+          autocomplete="current-password"
+          formControlName="password"
+          class="field-input"
+        />
+      </journal-field>
+
+      <journal-error-banner [message]="errorMessage()" />
+
+      <journal-submit-button
+        [loading]="submitting()"
+        [disabled]="form.invalid"
+        [icon]="iconLogin"
+        label="Entrar"
+        loadingLabel="Entrando…"
+        extraClass="mt-2 justify-center"
+      />
+    </form>
+
+    <p class="mt-7 text-center text-[11px]" style="color: var(--qp-mute)">
+      Seed user por defecto:
+      <code class="seed-code">dev&#64;journal.local</code>
+      ·
+      <code class="seed-code">journal123</code>
+    </p>
+  </div>
+</div>

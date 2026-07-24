@@ -1,0 +1,63 @@
+.card-panel {
+  background: var(--qp-bg-soft);
+  border: 1px solid var(--qp-line);
+  border-radius: 12px;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 120ms ease;
+
+  &.small {
+    width: 16px;
+    height: 16px;
+  }
+
+  &.selected {
+    border-color: var(--qp-ink);
+    transform: scale(1.1);
+  }
+}
+
+.color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.trade-types-table {
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--qp-line);
+    vertical-align: middle;
+  }
+
+  th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--qp-mute-2);
+    font-weight: 500;
+  }
+
+  .th-color {
+    width: 60px;
+  }
+
+  .th-trades {
+    width: 90px;
+  }
+
+  .th-actions {
+    width: 140px;
+  }
+}

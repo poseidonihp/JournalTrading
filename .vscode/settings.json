@@ -1,0 +1,9 @@
+{
+  "terminal.integrated.automationProfile.windows": {
+    "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "args": ["-NoProfile"]
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "typescript.tsc.autoDetect": "off",
+  "task.autoDetect": "off"
+}

@@ -1,0 +1,13 @@
+.session-item {
+  border: 1px solid transparent;
+  background: transparent;
+
+  &:hover {
+    background: var(--qp-bg);
+  }
+
+  &.active {
+    background: var(--qp-bg);
+    border-color: var(--qp-line-strong);
+  }
+}

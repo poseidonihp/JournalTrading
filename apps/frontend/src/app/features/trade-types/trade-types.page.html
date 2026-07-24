@@ -1,0 +1,141 @@
+<div class="flex h-full flex-col overflow-hidden">
+  <header
+    class="flex items-center justify-between border-b px-8 py-5"
+    style="border-color: var(--qp-line);"
+  >
+    <div>
+      <div class="uplabel">Workspace</div>
+      <h1 class="serif text-[26px] leading-tight">Tipos de trade</h1>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+    <section class="card-panel p-5 max-w-xl">
+      <h2 class="serif text-[18px] mb-3">Nuevo tipo de trade</h2>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          [ngModel]="draftName()"
+          (ngModelChange)="draftName.set($event)"
+          placeholder="Continuación, Rompimiento, etc."
+          class="flex-1 px-3 py-2 rounded border text-sm"
+          style="background: var(--qp-bg); border-color: var(--qp-line);"
+          (keyup.enter)="addType()"
+        />
+        <button type="button" class="pill pill-solid" (click)="addType()">
+          <lucide-icon [name]="iconPlus" class="h-4 w-4"></lucide-icon>
+          Agregar
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        @for (c of defaultColors; track c) {
+          <button
+            type="button"
+            (click)="draftColor.set(c)"
+            class="color-swatch"
+            [class.selected]="draftColor() === c"
+            [style.background]="c"
+            [attr.aria-label]="c"
+          ></button>
+        }
+      </div>
+      @if (error(); as e) {
+        <div class="mt-3 text-sm" style="color: var(--qp-clay);">{{ e }}</div>
+      }
+    </section>
+
+    <section class="card-panel p-5">
+      <h2 class="serif text-[18px] mb-3">Tus tipos</h2>
+      @if (types().length === 0) {
+        <div class="text-sm" style="color: var(--qp-mute-2);">
+          Aún no tienes tipos de trade. Crea el primero arriba.
+        </div>
+      } @else {
+        <table class="trade-types-table w-full text-sm">
+          <thead>
+            <tr>
+              <th class="th-color">Color</th>
+              <th class="th-name">Nombre</th>
+              <th class="th-trades">Trades</th>
+              <th class="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of types(); track t.id) {
+              <tr>
+                @if (editingId() === t.id) {
+                  <td>
+                    <span class="color-dot" [style.background]="editColor() || t.color"></span>
+                  </td>
+                  <td>
+                    <div class="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        [ngModel]="editName()"
+                        (ngModelChange)="editName.set($event)"
+                        class="px-2 py-1 rounded border text-sm"
+                        style="background: var(--qp-bg); border-color: var(--qp-line);"
+                      />
+                      <div class="flex gap-1 flex-wrap">
+                        @for (c of defaultColors; track c) {
+                          <button
+                            type="button"
+                            (click)="editColor.set(c)"
+                            class="color-swatch small"
+                            [class.selected]="editColor() === c"
+                            [style.background]="c"
+                          ></button>
+                        }
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-xs" style="color: var(--qp-mute-2);">
+                    {{ t.tradesCount ?? 0 }}
+                  </td>
+                  <td>
+                    <div class="flex gap-1">
+                      <button type="button" class="pill pill-solid text-xs" (click)="saveEdit(t)">
+                        Guardar
+                      </button>
+                      <button type="button" class="pill text-xs" (click)="cancelEdit()">
+                        Cancelar
+                      </button>
+                    </div>
+                  </td>
+                } @else {
+                  <td>
+                    <span class="color-dot" [style.background]="t.color"></span>
+                  </td>
+                  <td class="font-medium">{{ t.name }}</td>
+                  <td class="text-xs" style="color: var(--qp-mute-2);">
+                    {{ t.tradesCount ?? 0 }}
+                  </td>
+                  <td>
+                    <div class="flex gap-1">
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        (click)="startEdit(t)"
+                        aria-label="Editar"
+                      >
+                        <lucide-icon [name]="iconEdit" class="h-3.5 w-3.5"></lucide-icon>
+                      </button>
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        (click)="removeType(t)"
+                        aria-label="Eliminar"
+                      >
+                        <lucide-icon [name]="iconTrash" class="h-3.5 w-3.5"></lucide-icon>
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  </div>
+</div>

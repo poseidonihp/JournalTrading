@@ -1,0 +1,166 @@
+<aside
+  class="flex h-full w-[min(520px,90vw)] flex-col"
+  style="background: var(--qp-bg-soft); border-left: 1px solid var(--qp-line);"
+  role="complementary"
+  aria-label="Detalle de trade"
+>
+  <header
+    class="flex items-start justify-between gap-3 px-7 pb-5 pt-7"
+    style="border-bottom: 1px solid var(--qp-line);"
+  >
+    <div>
+      <div class="flex items-center gap-3">
+        <h2 class="serif text-[32px] leading-none">{{ trade().instrumentSymbol }}</h2>
+        <span
+          class="dir-chip"
+          [style.color]="trade().direction === 'LONG' ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+          [style.background]="
+            trade().direction === 'LONG' ? 'rgba(74,107,79,0.1)' : 'rgba(181,80,60,0.1)'
+          "
+        >
+          <span
+            style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;"
+            [style.borderTop]="trade().direction === 'SHORT' ? '5px solid var(--qp-clay)' : 'none'"
+            [style.borderBottom]="trade().direction === 'LONG' ? '5px solid var(--qp-sage)' : 'none'"
+          ></span>
+          {{ labelDirection(trade().direction) }}
+        </span>
+      </div>
+      <div class="mt-1.5 text-[12px]" style="color: var(--qp-mute);">
+        {{ formatDateTime(trade().enteredAt) }}
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" (click)="edited.emit()" class="icon-btn" aria-label="Editar trade">
+        <lucide-icon [name]="iconEdit" class="h-4 w-4"></lucide-icon>
+      </button>
+      <button
+        type="button"
+        (click)="removed.emit()"
+        class="icon-btn danger"
+        aria-label="Eliminar trade"
+      >
+        <lucide-icon [name]="iconTrash" class="h-4 w-4"></lucide-icon>
+      </button>
+      <button type="button" (click)="dismissed.emit()" class="icon-btn" aria-label="Cerrar">
+        <lucide-icon [name]="iconClose" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto px-7 py-6">
+    <section
+      class="grid grid-cols-3"
+      style="border-top: 1px solid var(--qp-line); border-bottom: 1px solid var(--qp-line);"
+    >
+      <div class="stat-cell">
+        <span class="uplabel">Bruto</span>
+        <span class="stat-value">{{ formatUsd(trade().gross) }}</span>
+      </div>
+      <div class="stat-cell">
+        <span class="uplabel">Comisión</span>
+        <span class="stat-value" style="color: var(--qp-mute);">
+          −{{ formatUsd(trade().commission) }}
+        </span>
+      </div>
+      <div class="stat-cell">
+        <span class="uplabel">Neto</span>
+        <span
+          class="stat-value"
+          [style.color]="Number(trade().net) >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+        >
+          {{ Number(trade().net) >= 0 ? '+' : '−' }}{{ formatUsdAbs(trade().net) }}
+        </span>
+      </div>
+    </section>
+
+    <section class="mt-6">
+      <div class="meta-row">
+        <span class="meta-label">Salida</span>
+        <span class="meta-value">{{ formatDateTime(trade().exitedAt) }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Duración</span>
+        <span class="meta-value">{{ formatDuration(trade().durationSeconds) }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Setup</span>
+        <span class="meta-value flex items-center gap-2">
+          <span
+            class="inline-block h-2.5 w-2.5 rounded-full"
+            [style.background]="trade().tradeTypeColor"
+            aria-hidden="true"
+          ></span>
+          {{ trade().tradeTypeName }}
+        </span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Emoción</span>
+        <span class="meta-value">{{ labelEmotion(trade().emotion) }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Contratos</span>
+        <span class="meta-value">{{ trade().contracts }}× · {{ trade().pointsTotal }} pts</span>
+      </div>
+      <div class="meta-row" style="border-bottom: none;">
+        <span class="meta-label">Salida por</span>
+        <span class="meta-value">{{ labelExit(trade().exitReason) }}</span>
+      </div>
+    </section>
+
+    @if (trade().entryReason) {
+      <section class="mt-6">
+        <div class="uplabel mb-2">Razón de entrada</div>
+        <p class="note-block">{{ trade().entryReason }}</p>
+      </section>
+    }
+
+    @if (trade().notes) {
+      <section class="mt-6">
+        <div class="uplabel mb-2">Notas</div>
+        <p class="note-block">{{ trade().notes }}</p>
+      </section>
+    }
+
+    @if (media().length > 0) {
+      <section class="mt-6">
+        <div class="uplabel mb-2">Adjuntos</div>
+        <div class="grid grid-cols-2 gap-2">
+          @for (m of media(); track m.id) {
+            @if (m.kind === 'IMAGE') {
+              <button
+                type="button"
+                (click)="openViewer(m.id)"
+                class="block aspect-video overflow-hidden rounded-md p-0"
+                style="border: 1px solid var(--qp-line-strong); background: var(--qp-bg); cursor: zoom-in;"
+                aria-label="Abrir imagen"
+              >
+                <img
+                  [src]="m.thumbnailUrl ?? m.url"
+                  class="h-full w-full object-cover transition hover:scale-105"
+                  alt="Adjunto"
+                />
+              </button>
+            } @else {
+              <video
+                [src]="m.url"
+                controls
+                preload="metadata"
+                class="aspect-video w-full rounded-md"
+                style="border: 1px solid var(--qp-line-strong); background: var(--qp-bg);"
+              ></video>
+            }
+          }
+        </div>
+      </section>
+    }
+  </div>
+</aside>
+
+@if (viewerOpen() && viewerImages().length > 0) {
+  <app-image-viewer
+    [images]="viewerImages()"
+    [startIndex]="viewerIndex()"
+    (dismissed)="closeViewer()"
+  />
+}

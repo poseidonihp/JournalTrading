@@ -1,0 +1,213 @@
+<div class="flex h-full flex-col overflow-hidden">
+  <header
+    class="flex items-center justify-between border-b px-8 py-5"
+    style="border-color: var(--qp-line);"
+  >
+    <div>
+      <div class="uplabel">Workspace</div>
+      <h1 class="serif text-[26px] leading-tight">Usuarios</h1>
+    </div>
+    @if (!creating()) {
+      <button type="button" class="pill pill-solid" (click)="openCreate()">
+        <lucide-icon [name]="iconPlus" class="h-4 w-4"></lucide-icon>
+        Nuevo usuario
+      </button>
+    }
+  </header>
+
+  <div class="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+    @if (error(); as e) {
+      <div class="card-panel p-3 text-sm" style="color: var(--qp-clay);">{{ e }}</div>
+    }
+
+    @if (creating()) {
+      <section class="card-panel p-5 max-w-2xl">
+        <h2 class="serif text-[18px] mb-3">Nuevo usuario</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Email</span>
+            <input
+              type="email"
+              autocomplete="off"
+              [ngModel]="draftEmail()"
+              (ngModelChange)="draftEmail.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Nombre</span>
+            <input
+              type="text"
+              autocomplete="off"
+              [ngModel]="draftDisplayName()"
+              (ngModelChange)="draftDisplayName.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Password</span>
+            <input
+              type="password"
+              autocomplete="new-password"
+              [ngModel]="draftPassword()"
+              (ngModelChange)="draftPassword.set($event)"
+              placeholder="Mín. 8 caracteres"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Timezone</span>
+            <input
+              type="text"
+              [ngModel]="draftTimezone()"
+              (ngModelChange)="draftTimezone.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uplabel">Locale</span>
+            <input
+              type="text"
+              [ngModel]="draftLocale()"
+              (ngModelChange)="draftLocale.set($event)"
+              class="px-3 py-2 rounded border text-sm"
+              style="background: var(--qp-bg); border-color: var(--qp-line);"
+            />
+          </label>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button type="button" class="pill pill-solid" (click)="submitCreate()">
+            <lucide-icon [name]="iconSave" class="h-4 w-4"></lucide-icon>
+            Crear
+          </button>
+          <button type="button" class="pill" (click)="cancelCreate()">
+            <lucide-icon [name]="iconCancel" class="h-4 w-4"></lucide-icon>
+            Cancelar
+          </button>
+        </div>
+      </section>
+    }
+
+    <section class="card-panel p-5">
+      <h2 class="serif text-[18px] mb-3">Usuarios registrados</h2>
+      @if (loading() && userList().length === 0) {
+        <div class="text-sm" style="color: var(--qp-mute-2);">Cargando…</div>
+      } @else if (userList().length === 0) {
+        <div class="text-sm" style="color: var(--qp-mute-2);">
+          No hay usuarios. Crea el primero arriba.
+        </div>
+      } @else {
+        <ul class="divide-y" style="border-color: var(--qp-line);">
+          @for (u of userList(); track u.id) {
+            <li class="py-3">
+              @if (editingId() === u.id) {
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <label class="flex flex-col gap-1 text-sm">
+                    <span class="uplabel">Email</span>
+                    <input
+                      type="email"
+                      [ngModel]="editEmail()"
+                      (ngModelChange)="editEmail.set($event)"
+                      class="px-3 py-2 rounded border text-sm"
+                      style="background: var(--qp-bg); border-color: var(--qp-line);"
+                    />
+                  </label>
+                  <label class="flex flex-col gap-1 text-sm">
+                    <span class="uplabel">Nombre</span>
+                    <input
+                      type="text"
+                      [ngModel]="editDisplayName()"
+                      (ngModelChange)="editDisplayName.set($event)"
+                      class="px-3 py-2 rounded border text-sm"
+                      style="background: var(--qp-bg); border-color: var(--qp-line);"
+                    />
+                  </label>
+                  <label class="flex flex-col gap-1 text-sm">
+                    <span class="uplabel">Nuevo password (opcional)</span>
+                    <input
+                      type="password"
+                      autocomplete="new-password"
+                      [ngModel]="editPassword()"
+                      (ngModelChange)="editPassword.set($event)"
+                      placeholder="Déjalo vacío para no cambiarlo"
+                      class="px-3 py-2 rounded border text-sm"
+                      style="background: var(--qp-bg); border-color: var(--qp-line);"
+                    />
+                  </label>
+                  <label class="flex flex-col gap-1 text-sm">
+                    <span class="uplabel">Timezone</span>
+                    <input
+                      type="text"
+                      [ngModel]="editTimezone()"
+                      (ngModelChange)="editTimezone.set($event)"
+                      class="px-3 py-2 rounded border text-sm"
+                      style="background: var(--qp-bg); border-color: var(--qp-line);"
+                    />
+                  </label>
+                  <label class="flex flex-col gap-1 text-sm">
+                    <span class="uplabel">Locale</span>
+                    <input
+                      type="text"
+                      [ngModel]="editLocale()"
+                      (ngModelChange)="editLocale.set($event)"
+                      class="px-3 py-2 rounded border text-sm"
+                      style="background: var(--qp-bg); border-color: var(--qp-line);"
+                    />
+                  </label>
+                </div>
+                <div class="flex gap-2 mt-3">
+                  <button type="button" class="pill pill-solid text-xs" (click)="saveEdit(u)">
+                    <lucide-icon [name]="iconSave" class="h-3.5 w-3.5"></lucide-icon>
+                    Guardar
+                  </button>
+                  <button type="button" class="pill text-xs" (click)="cancelEdit()">
+                    Cancelar
+                  </button>
+                </div>
+              } @else {
+                <div class="flex items-center gap-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate">
+                      {{ u.displayName }}
+                      @if (isSelf(u)) {
+                        <span class="badge-new ml-1">TÚ</span>
+                      }
+                    </div>
+                    <div class="text-xs truncate" style="color: var(--qp-mute-2);">
+                      {{ u.email }} · {{ u.timezone }} · {{ u.locale }}
+                    </div>
+                    <div class="text-[10px]" style="color: var(--qp-mute-2);">
+                      Alta: {{ u.createdAt | date: 'medium' }}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    (click)="startEdit(u)"
+                    aria-label="Editar"
+                  >
+                    <lucide-icon [name]="iconEdit" class="h-3.5 w-3.5"></lucide-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    [disabled]="isSelf(u)"
+                    [class.opacity-40]="isSelf(u)"
+                    (click)="removeUser(u)"
+                    aria-label="Eliminar"
+                  >
+                    <lucide-icon [name]="iconTrash" class="h-3.5 w-3.5"></lucide-icon>
+                  </button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Dependencias del monorepo (pnpm workspace). Dependabot recorre los
+  # package.json del workspace a partir de la raíz.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    groups:
+      # Agrupa parches/minors no-breaking en un solo PR para reducir ruido.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+
+  # Acciones usadas en los workflows de CI.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - ci

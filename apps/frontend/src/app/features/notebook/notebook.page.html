@@ -1,0 +1,121 @@
+<div class="flex h-full flex-col overflow-hidden">
+  <header
+    class="flex items-center justify-between border-b px-8 py-5"
+    style="border-color: var(--qp-line);"
+  >
+    <div>
+      <div class="uplabel">Notebook</div>
+      <h1 class="serif text-[26px] leading-tight">Daily Journal</h1>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button type="button" class="icon-btn" (click)="prevMonth()" aria-label="Mes anterior">
+        <lucide-icon [name]="iconLeft" class="h-4 w-4"></lucide-icon>
+      </button>
+      <span class="capitalize text-sm font-medium min-w-[140px] text-center">
+        {{ monthLabel() }}
+      </span>
+      <button type="button" class="icon-btn" (click)="nextMonth()" aria-label="Mes siguiente">
+        <lucide-icon [name]="iconRight" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 grid grid-cols-[280px_1fr] overflow-hidden">
+    <aside
+      class="border-r overflow-y-auto p-4"
+      style="border-color: var(--qp-line); background: var(--qp-bg-soft);"
+    >
+      <input
+        type="date"
+        [value]="selectedDate()"
+        (change)="onDateChange($any($event.target).value)"
+        class="w-full px-2 py-1.5 rounded border text-sm mb-4"
+        style="background: var(--qp-bg); border-color: var(--qp-line);"
+      />
+
+      <div class="uplabel mb-2">Entradas del mes</div>
+      @if (loading()) {
+        <div class="flex items-center gap-2 text-sm" style="color: var(--qp-mute);">
+          <lucide-icon [name]="iconLoader" class="h-4 w-4 animate-spin"></lucide-icon>
+          Cargando…
+        </div>
+      } @else if (sessions().length === 0) {
+        <div class="text-sm" style="color: var(--qp-mute-2);">
+          Sin entradas este mes.
+        </div>
+      } @else {
+        <ul class="space-y-1">
+          @for (s of sessions(); track s.id) {
+            <li>
+              <button
+                type="button"
+                (click)="selectDate(s.date)"
+                class="w-full text-left px-2 py-1.5 rounded text-sm session-item"
+                [class.active]="selectedDate() === s.date"
+              >
+                <div class="font-medium">{{ s.date }}</div>
+                @if (s.mood) {
+                  <div class="text-[11px]" style="color: var(--qp-mute-2);">{{ s.mood }}</div>
+                }
+                <div class="text-[11px] truncate" style="color: var(--qp-mute-2);">
+                  {{ s.notes.slice(0, 60) }}{{ s.notes.length > 60 ? '…' : '' }}
+                </div>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </aside>
+
+    <section class="flex flex-col overflow-hidden p-6">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="serif text-[22px]">{{ selectedDate() }}</h2>
+          @if (currentSession()) {
+            <div class="text-[11px]" style="color: var(--qp-mute-2);">
+              Última edición: {{ currentSession()?.updatedAt?.slice(0, 16)?.replace('T', ' ') }}
+            </div>
+          } @else {
+            <div class="text-[11px]" style="color: var(--qp-mute-2);">Nueva entrada</div>
+          }
+        </div>
+        <div class="flex items-center gap-2">
+          @if (currentSession()) {
+            <button type="button" class="icon-btn" (click)="deleteCurrent()" aria-label="Eliminar">
+              <lucide-icon [name]="iconTrash" class="h-4 w-4"></lucide-icon>
+            </button>
+          }
+          <button type="button" class="pill pill-solid" (click)="save()" [disabled]="saving()">
+            <lucide-icon [name]="iconSave" class="h-4 w-4"></lucide-icon>
+            {{ saving() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+
+      <input
+        type="text"
+        [ngModel]="mood()"
+        (ngModelChange)="mood.set($event)"
+        placeholder="Mood: enfocado, ansioso, disciplinado…"
+        class="px-3 py-2 rounded border text-sm mb-3"
+        style="background: var(--qp-bg); border-color: var(--qp-line);"
+      />
+
+      <textarea
+        [ngModel]="notes()"
+        (ngModelChange)="notes.set($event)"
+        placeholder="Notas del día (markdown). Setup, ejecución, errores, lecciones…"
+        class="flex-1 resize-none px-3 py-2 rounded border text-sm font-mono leading-relaxed"
+        style="background: var(--qp-bg); border-color: var(--qp-line);"
+      ></textarea>
+
+      @if (justSaved() && !saving()) {
+        <div class="mt-2 text-xs" style="color: var(--qp-positive);">Guardado ✓</div>
+      }
+      @if (error(); as e) {
+        <div class="mt-2 text-xs" style="color: var(--qp-clay);">{{ e }}</div>
+      }
+    </section>
+  </div>
+</div>

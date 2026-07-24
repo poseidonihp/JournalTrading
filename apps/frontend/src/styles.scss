@@ -1,0 +1,271 @@
+@use './styles/colors';
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-fg));
+  font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'ss01', 'cv11', 'tnum';
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Form controls — quitar el chrome nativo y adoptar la paleta. */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e7584' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.75rem;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a92a2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.dark input[type='date']::-webkit-calendar-picker-indicator,
+.dark input[type='month']::-webkit-calendar-picker-indicator,
+.dark input[type='time']::-webkit-calendar-picker-indicator,
+.dark input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+/* Sombras de tarjeta reutilizables. */
+.shadow-card {
+  box-shadow:
+    0 1px 2px rgba(17, 20, 28, 0.04),
+    0 1px 3px rgba(17, 20, 28, 0.06);
+}
+
+.dark .shadow-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+/* Utilidades compartidas Quartz-Paper. */
+.serif {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+.uplabel {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--qp-mute-2);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--qp-line-strong);
+  font-size: 12px;
+  color: var(--qp-ink);
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.pill:hover {
+  background: var(--qp-bg-soft);
+}
+.pill-solid {
+  background: var(--qp-ink);
+  color: var(--qp-bg);
+  border-color: var(--qp-ink);
+}
+.pill-solid:hover {
+  opacity: 0.92;
+  background: var(--qp-ink);
+}
+.pill-solid:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--qp-line-strong);
+  color: var(--qp-ink);
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.icon-btn:hover {
+  background: var(--qp-bg-soft);
+}
+
+.panel {
+  background: var(--qp-bg-soft);
+  color: var(--qp-ink);
+  border: 1px solid var(--qp-line-strong);
+  box-shadow:
+    0 24px 60px rgba(26, 24, 21, 0.18),
+    0 2px 6px rgba(26, 24, 21, 0.08);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-input,
+.field-select,
+.field-textarea {
+  background: var(--qp-bg);
+  color: var(--qp-ink);
+  border: 1px solid var(--qp-line-strong);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 120ms ease, background 120ms ease;
+  font-feature-settings: 'tnum';
+}
+.field-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237a726a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.field-textarea {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+}
+.field-input:hover,
+.field-select:hover,
+.field-textarea:hover {
+  border-color: var(--qp-ink);
+}
+.field-input:focus,
+.field-select:focus,
+.field-textarea:focus {
+  border-color: var(--qp-ink);
+  background: var(--qp-bg);
+  box-shadow: 0 0 0 3px rgba(26, 24, 21, 0.06);
+}
+
+.check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--qp-line-strong);
+  background: var(--qp-bg);
+  cursor: pointer;
+  position: relative;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.check:checked {
+  background: var(--qp-ink);
+  border-color: var(--qp-ink);
+}
+.check:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--qp-bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.stat-value {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-feature-settings: 'tnum';
+}
+
+.note-block {
+  padding: 12px 14px;
+  background: var(--qp-bg);
+  border: 1px solid var(--qp-line-strong);
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--qp-ink-soft);
+  white-space: pre-wrap;
+}
+
+// Menús desplegables (CDK Menu se renderiza en un portal, por eso van como utilidades globales).
+.qp-menu {
+  background: var(--qp-bg-soft);
+  border: 1px solid var(--qp-line-strong);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow:
+    0 16px 40px rgba(26, 24, 21, 0.18),
+    0 2px 6px rgba(26, 24, 21, 0.08);
+}
+.qp-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--qp-ink);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.qp-menu-item:hover,
+.qp-menu-item:focus-visible {
+  background: var(--qp-bg-active);
+  outline: none;
+}
+.qp-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--qp-line);
+}
+
+.seed-code {
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  background: var(--qp-bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--qp-line);
+  color: var(--qp-ink);
+}

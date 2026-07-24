@@ -1,0 +1,298 @@
+<div class="flex h-full flex-col overflow-hidden">
+  <header
+    class="flex items-center justify-between border-b px-8 py-5 gap-4 flex-wrap"
+    style="border-color: var(--qp-line);"
+  >
+    <div>
+      <div class="uplabel">Tracker</div>
+      <h1 class="serif text-[26px] leading-tight">Overview</h1>
+    </div>
+    <div class="date-filter">
+      <div class="date-presets">
+        <button type="button" class="preset-btn" (click)="applyAll()">Todo</button>
+        <button type="button" class="preset-btn" (click)="applyMtd()">Mes</button>
+        <button type="button" class="preset-btn" (click)="applyYtd()">Año</button>
+        <button type="button" class="preset-btn" (click)="applyLast30()">30 días</button>
+        <button type="button" class="preset-btn" (click)="applyLast90()">90 días</button>
+      </div>
+      <div class="date-inputs">
+        <label class="date-field">
+          <span>Desde</span>
+          <input
+            type="date"
+            [value]="dateFrom()"
+            (change)="onDateFromChange($any($event.target).value)"
+          />
+        </label>
+        <label class="date-field">
+          <span>Hasta</span>
+          <input
+            type="date"
+            [value]="dateTo()"
+            (change)="onDateToChange($any($event.target).value)"
+          />
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div class="tracker-scroll flex-1 px-8 py-6 space-y-6">
+    @if (error()) {
+      <div class="tracker-error">{{ error() }}</div>
+    }
+
+    <section class="chart-panel">
+      <div class="chart-header">
+        <h2 class="serif text-[20px]">Evolución del Capital</h2>
+        <p class="chart-subtitle">Seguimiento de tu rendimiento en el tiempo</p>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot capital"></span>Capital</span>
+          <span class="legend-item"><span class="legend-dot profits"></span>Ganancias</span>
+          <span class="legend-item"><span class="legend-dot expenses"></span>Gastos</span>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas
+          #chartCanvas
+          (mousemove)="onChartMouseMove($event)"
+          (mouseleave)="onChartMouseLeave()"
+        ></canvas>
+        @if (tooltip(); as t) {
+          <div class="chart-tooltip" [style.left.px]="t.x + 12" [style.top.px]="t.y + 12">
+            <div class="tooltip-date">{{ formatTooltipDate(t.date) }}</div>
+            <div class="tooltip-row">
+              <span class="legend-dot capital"></span>
+              <span class="tooltip-label">Capital:</span>
+              <span class="tooltip-value">{{ formatUsd(t.capital) }}</span>
+            </div>
+            <div class="tooltip-row">
+              <span class="legend-dot profits"></span>
+              <span class="tooltip-label">Ganancias:</span>
+              <span class="tooltip-value">{{ formatUsd(t.ganancias) }}</span>
+            </div>
+            <div class="tooltip-row">
+              <span class="legend-dot expenses"></span>
+              <span class="tooltip-label">Gastos:</span>
+              <span class="tooltip-value">{{ formatUsd(t.gastos) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="kpi-grid">
+      <div class="kpi-card-v2">
+        <div class="kpi-card-top">
+          <span class="kpi-icon icon-eval">
+            <lucide-icon [name]="iconEvaluations"></lucide-icon>
+          </span>
+          <span class="kpi-trend pos">↑ {{ evaluationsActive() }} en progreso</span>
+        </div>
+        <div class="kpi-label">Evaluaciones</div>
+        <div class="kpi-value">{{ evaluationsTotal() }}</div>
+      </div>
+
+      <div class="kpi-card-v2">
+        <div class="kpi-card-top">
+          <span class="kpi-icon icon-live">
+            <lucide-icon [name]="iconLive"></lucide-icon>
+          </span>
+          <span class="kpi-trend pos">↑ {{ liveActive() }} activas</span>
+        </div>
+        <div class="kpi-label">Cuentas Live</div>
+        <div class="kpi-value">{{ liveTotal() }}</div>
+      </div>
+
+      <div class="kpi-card-v2">
+        <div class="kpi-card-top">
+          <span class="kpi-icon icon-funding">
+            <lucide-icon [name]="iconFunding"></lucide-icon>
+          </span>
+          <span class="kpi-trend pos">↑ Retiros: {{ formatPercent(withdrawalRatio()) }}</span>
+        </div>
+        <div class="kpi-label">Funding Ratio</div>
+        <div class="kpi-value">{{ formatPercent(fundingRatio()) }}</div>
+      </div>
+
+      <div class="kpi-card-v2">
+        <div class="kpi-card-top">
+          <span class="kpi-icon icon-expenses">
+            <lucide-icon [name]="iconExpenses"></lucide-icon>
+          </span>
+          <span class="kpi-trend neg">↓ Promedio: {{ formatUsd(avgExpensesPerAccount()) }}</span>
+        </div>
+        <div class="kpi-label">Gastos Totales</div>
+        <div class="kpi-value">{{ formatUsd(totalExpenses()) }}</div>
+      </div>
+
+      <div class="kpi-card-v2">
+        <div class="kpi-card-top">
+          <span class="kpi-icon icon-profits">
+            <lucide-icon [name]="iconProfits"></lucide-icon>
+          </span>
+          <span class="kpi-trend pos">↑ Promedio: {{ formatUsd(avgProfitsPerAccount()) }}</span>
+        </div>
+        <div class="kpi-label">Ganancias Totales</div>
+        <div class="kpi-value">{{ formatUsd(withdrawalsTotal()) }}</div>
+      </div>
+
+      <div class="kpi-card-v2">
+        <div class="kpi-card-top">
+          <span class="kpi-icon icon-net">
+            <lucide-icon [name]="iconNet"></lucide-icon>
+          </span>
+          <span class="kpi-trend pos">↑ ROI: {{ formatPercent(globalRoi()) }}</span>
+        </div>
+        <div class="kpi-label">Beneficio Neto</div>
+        <div class="kpi-value" [class]="pnlClass(netProfit())">{{ formatUsd(netProfit()) }}</div>
+      </div>
+    </section>
+
+    <section class="daily-kpi-grid">
+      <div class="daily-kpi-card">
+        <div class="daily-kpi-header">
+          <span class="daily-kpi-label">Mejor Día</span>
+          <span class="daily-kpi-icon best">
+            <lucide-icon [name]="iconBest"></lucide-icon>
+          </span>
+        </div>
+        <div class="daily-kpi-value" [class]="pnlClass(bestDay())">
+          {{ formatUsd(bestDay()) }}
+        </div>
+        <div class="daily-kpi-hint">Mayor ganancia diaria</div>
+      </div>
+
+      <div class="daily-kpi-card">
+        <div class="daily-kpi-header">
+          <span class="daily-kpi-label">Peor Día</span>
+          <span class="daily-kpi-icon worst">
+            <lucide-icon [name]="iconWorst"></lucide-icon>
+          </span>
+        </div>
+        <div class="daily-kpi-value" [class]="pnlClass(worstDay())">
+          {{ formatUsd(worstDay()) }}
+        </div>
+        <div class="daily-kpi-hint">Mayor pérdida diaria</div>
+      </div>
+
+      <div class="daily-kpi-card">
+        <div class="daily-kpi-header">
+          <span class="daily-kpi-label">Promedio Diario</span>
+          <span class="daily-kpi-icon avg">
+            <lucide-icon [name]="iconAvg"></lucide-icon>
+          </span>
+        </div>
+        <div class="daily-kpi-value" [class]="pnlClass(avgDay())">
+          {{ formatUsd(avgDay()) }}
+        </div>
+        <div class="daily-kpi-hint">Cambio promedio por día</div>
+      </div>
+
+      <div class="daily-kpi-card">
+        <div class="daily-kpi-header">
+          <span class="daily-kpi-label">Retiros</span>
+          <span class="daily-kpi-icon retiros">
+            <lucide-icon [name]="iconRetiros"></lucide-icon>
+          </span>
+        </div>
+        <div class="daily-kpi-value">{{ withdrawalsCount() }}</div>
+        <div class="daily-kpi-hint">Número de retiros realizados</div>
+      </div>
+    </section>
+
+    <section class="firm-analysis">
+      <div class="section-heading">
+        <h2 class="serif text-[20px]">Análisis por Empresa</h2>
+        <p class="section-subtitle">Rendimiento detallado de cada prop firm</p>
+      </div>
+
+      <div class="firm-grid">
+        <div class="firm-card">
+          <div class="firm-card-header">
+            <lucide-icon [name]="iconTrophy" class="firm-icon trophy"></lucide-icon>
+            <div class="firm-card-title">Top Empresas por ROI</div>
+          </div>
+          @if (topByRoi().length === 0) {
+            <div class="firm-empty">Sin datos todavía</div>
+          } @else {
+            <ul class="firm-list">
+              @for (firm of topByRoi(); track firm.company; let i = $index) {
+                <li class="firm-row">
+                  <span class="firm-rank">{{ i + 1 }}</span>
+                  <span class="firm-name">{{ firm.company }}</span>
+                  <span class="firm-meta">{{ firm.accountsCount }} cuentas</span>
+                  <span class="firm-value" [class]="roiClass(firm.roi)">
+                    {{ formatPercent(firm.roi) }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <div class="firm-card">
+          <div class="firm-card-header">
+            <lucide-icon [name]="iconWithdraw" class="firm-icon withdraw"></lucide-icon>
+            <div class="firm-card-title">Top Empresas por Retiros</div>
+          </div>
+          @if (topByWithdrawals().length === 0) {
+            <div class="firm-empty">Sin datos todavía</div>
+          } @else {
+            <ul class="firm-list">
+              @for (firm of topByWithdrawals(); track firm.company; let i = $index) {
+                <li class="firm-row">
+                  <span class="firm-rank">{{ i + 1 }}</span>
+                  <span class="firm-name">{{ firm.company }}</span>
+                  <span class="firm-meta">{{ firm.accountsCount }} cuentas</span>
+                  <span class="firm-value pnl-positive">
+                    {{ formatUsd(firm.totalProfits) }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="firm-table-section">
+      <div class="section-heading">
+        <h2 class="serif text-[20px]">Todas las Empresas</h2>
+      </div>
+      <div class="firm-table-panel">
+        <table class="firm-table">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th class="num">Cuentas</th>
+              <th class="num">Gastos</th>
+              <th class="num">Retiros</th>
+              <th class="num">Beneficio</th>
+              <th class="num">ROI</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (firm of firms(); track firm.company) {
+              <tr class="firm-table-row">
+                <td class="firm-name-cell">{{ firm.company }}</td>
+                <td class="num">{{ firm.accountsCount }}</td>
+                <td class="num">{{ formatUsd(firm.totalExpenses) }}</td>
+                <td class="num">{{ formatUsd(firm.totalProfits) }}</td>
+                <td class="num" [class]="pnlClass(firm.netProfit)">
+                  {{ formatUsd(firm.netProfit) }}
+                </td>
+                <td class="num" [class]="roiClass(firm.roi)">
+                  {{ formatPercent(firm.roi) }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-row">No hay cuentas registradas todavía.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,110 @@
+<div class="flex flex-wrap items-center gap-2">
+  <span
+    class="mr-1 text-[10px] uppercase tracking-[0.1em]"
+    style="color: var(--qp-mute-2);"
+  >
+    Filtros
+  </span>
+
+  <input
+    type="month"
+    [value]="store.filters().month ?? ''"
+    (change)="onChange({ key: 'month', value: pickValue($event) || undefined })"
+    class="chip-month"
+    [class.active]="!!store.filters().month"
+  />
+
+  <select
+    [value]="store.filters().instrumentId ?? ''"
+    (change)="onChange({ key: 'instrumentId', value: pickValue($event) || undefined })"
+    class="chip-select"
+    [class.active]="!!store.filters().instrumentId"
+  >
+    <option value="">Todos los instrumentos</option>
+    @for (i of instruments.list(); track i.id) {
+      <option [value]="i.id">{{ i.symbol }}</option>
+    }
+  </select>
+
+  <select
+    [value]="store.filters().tradeTypeId ?? ''"
+    (change)="onChange({ key: 'tradeTypeId', value: pickTradeTypeId($event) })"
+    class="chip-select"
+    [class.active]="!!store.filters().tradeTypeId"
+  >
+    <option value="">Tipo de trade</option>
+    @for (t of tradeTypes(); track t.id) {
+      <option [value]="t.id">{{ t.name }}</option>
+    }
+  </select>
+
+  <select
+    [value]="store.filters().direction ?? ''"
+    (change)="onChange({ key: 'direction', value: pickEnum($event, directions) })"
+    class="chip-select"
+    [class.active]="!!store.filters().direction"
+  >
+    <option value="">Dirección</option>
+    @for (d of directions; track d) {
+      <option [value]="d">{{ labelDirection(d) }}</option>
+    }
+  </select>
+
+  <select
+    [value]="store.filters().emotion ?? ''"
+    (change)="onChange({ key: 'emotion', value: pickEnum($event, emotions) })"
+    class="chip-select"
+    [class.active]="!!store.filters().emotion"
+  >
+    <option value="">Emoción</option>
+    @for (e of emotions; track e) {
+      <option [value]="e">{{ labelEmotion(e) }}</option>
+    }
+  </select>
+
+  <select
+    [value]="store.filters().exitReason ?? ''"
+    (change)="onChange({ key: 'exitReason', value: pickEnum($event, exitReasons) })"
+    class="chip-select"
+    [class.active]="!!store.filters().exitReason"
+  >
+    <option value="">Salida</option>
+    @for (r of exitReasons; track r) {
+      <option [value]="r">{{ labelExit(r) }}</option>
+    }
+  </select>
+
+  @if (hasActive()) {
+    <button type="button" (click)="clear()" class="clear-btn">
+      <lucide-icon [name]="iconClear" class="h-3 w-3"></lucide-icon>
+      Limpiar
+    </button>
+  }
+
+  <div class="ml-auto flex items-center gap-3 text-[12px]" style="color: var(--qp-mute);">
+    <label class="flex items-center gap-2">
+      <span>Ordenar por</span>
+      <select
+        [value]="store.sort()"
+        (change)="onSortChange($event)"
+        class="chip-select"
+      >
+        @for (s of sorts; track s) {
+          <option [value]="s">{{ labelSort(s) }}</option>
+        }
+      </select>
+    </label>
+    <label class="flex items-center gap-2">
+      <span>Densidad</span>
+      <select
+        [value]="store.density()"
+        (change)="onDensityChange($event)"
+        class="chip-select"
+      >
+        @for (d of densities; track d) {
+          <option [value]="d">{{ labelDensity(d) }}</option>
+        }
+      </select>
+    </label>
+  </div>
+</div>

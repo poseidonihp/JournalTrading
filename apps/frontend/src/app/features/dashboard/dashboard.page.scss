@@ -1,0 +1,102 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.dashboard-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--qp-line-strong);
+    border-radius: 6px;
+    border: 2px solid var(--qp-bg);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--qp-mute-2);
+  }
+}
+
+.kpi-card {
+  background: var(--qp-bg-soft);
+  border: 1px solid var(--qp-line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.kpi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kpi-chart {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.kpi-chart-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: stretch;
+  width: 110px;
+  gap: 4px;
+}
+
+.bar-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.card-panel {
+  background: var(--qp-bg-soft);
+  border: 1px solid var(--qp-line);
+  border-radius: 12px;
+}
+
+.month-select {
+  appearance: none;
+  background: var(--qp-bg-soft);
+  border: 1px solid var(--qp-line);
+  color: var(--qp-ink);
+  padding: 6px 28px 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 180px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  transition: border-color 120ms ease;
+
+  &:hover {
+    border-color: var(--qp-line-strong);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--qp-ink);
+  }
+}

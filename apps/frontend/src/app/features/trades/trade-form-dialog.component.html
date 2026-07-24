@@ -1,0 +1,258 @@
+<journal-dialog [title]="isEdit ? 'Editar trade' : 'Nuevo trade'" (closed)="cancel()">
+  <form
+    dialog-body
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    class="grid flex-1 grid-cols-1 gap-5 overflow-y-auto px-7 py-6 md:grid-cols-2"
+  >
+    <fieldset class="contents">
+      <journal-field label="Cuenta">
+        <select formControlName="accountId" class="field-select">
+          @for (a of selectableAccounts(); track a.id) {
+            <option [value]="a.id">{{ a.name }}</option>
+          }
+        </select>
+      </journal-field>
+
+      <journal-field label="Instrumento">
+        <select formControlName="instrumentId" class="field-select">
+          @for (i of instrumentsStore.list(); track i.id) {
+            <option [value]="i.id">{{ i.symbol }} — {{ i.name }}</option>
+          }
+        </select>
+      </journal-field>
+
+      <journal-field label="Entrada">
+        <input type="datetime-local" formControlName="enteredAt" class="field-input" />
+      </journal-field>
+
+      <journal-field
+        label="Salida"
+        [error]="exitBeforeEntry() ? 'La salida no puede ser anterior a la entrada.' : null"
+      >
+        <input
+          type="datetime-local"
+          formControlName="exitedAt"
+          [attr.min]="enteredAtValue() || null"
+          class="field-input"
+        />
+      </journal-field>
+
+      <journal-field label="Contratos">
+        <input type="number" min="1" step="1" formControlName="contracts" class="field-input" />
+      </journal-field>
+
+      <journal-field label="Puntos (positivo o negativo)">
+        <input type="number" step="0.01" formControlName="pointsTotal" class="field-input" />
+      </journal-field>
+
+      <journal-field label="Dirección">
+        <select formControlName="direction" class="field-select">
+          @for (d of directions; track d) {
+            <option [value]="d">{{ labelDirection(d) }}</option>
+          }
+        </select>
+      </journal-field>
+
+      <journal-field label="Tipo de trade">
+        <div class="flex items-center gap-2">
+          <span
+            class="inline-block h-3 w-3 rounded-full border"
+            style="border-color: var(--qp-line)"
+            [style.background]="selectedTradeTypeColor()"
+            aria-hidden="true"
+          ></span>
+          <select formControlName="tradeTypeId" class="field-select flex-1">
+            @for (t of tradeTypesStore.types(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </div>
+      </journal-field>
+
+      <journal-field label="Salida (motivo)">
+        <select formControlName="exitReason" class="field-select">
+          @for (r of exitReasons; track r) {
+            <option [value]="r">{{ labelExit(r) }}</option>
+          }
+        </select>
+      </journal-field>
+
+      <journal-field label="Emoción">
+        <select formControlName="emotion" class="field-select">
+          @for (e of emotions; track e) {
+            <option [value]="e">{{ labelEmotion(e) }}</option>
+          }
+        </select>
+      </journal-field>
+
+      <journal-field label="Comisión total (USD)">
+        <input
+          type="number"
+          step="0.0001"
+          formControlName="commission"
+          class="field-input"
+          [placeholder]="defaultCommission()"
+        />
+      </journal-field>
+
+      <label class="flex items-center gap-2.5 self-end pb-2">
+        <input
+          type="checkbox"
+          [checked]="netOverrideEnabled()"
+          (change)="toggleNetOverride()"
+          class="check"
+        />
+        <span class="text-[12px]" style="color: var(--qp-ink-soft)">
+          Override manual del neto
+        </span>
+      </label>
+
+      @if (netOverrideEnabled()) {
+        <journal-field class="md:col-span-2" label="Neto manual (USD)">
+          <input type="number" step="0.01" formControlName="netOverride" class="field-input" />
+        </journal-field>
+      }
+
+      <journal-field class="md:col-span-2" label="Razón de entrada">
+        <input
+          type="text"
+          formControlName="entryReason"
+          placeholder="P. ej. soporte H4 + divergencia RSI"
+          class="field-input"
+        />
+      </journal-field>
+
+      <journal-field class="md:col-span-2" label="Notas">
+        <textarea
+          rows="3"
+          formControlName="notes"
+          class="field-textarea"
+          placeholder="Reflexión, errores, lecciones"
+        ></textarea>
+      </journal-field>
+    </fieldset>
+
+    <!-- Live calculations -->
+    <div class="stats md:col-span-2">
+      <div>
+        <span class="uplabel">Bruto</span>
+        <span class="stat-value">{{ formatUsd(calcGross()) }}</span>
+      </div>
+      <div>
+        <span class="uplabel">Comisión</span>
+        <span class="stat-value" style="color: var(--qp-mute)">
+          −{{ formatUsd(calcCommission()) }}
+        </span>
+      </div>
+      <div>
+        <span class="uplabel">Neto</span>
+        <span
+          class="stat-value"
+          [style.color]="calcNet() >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+        >
+          {{ calcNet() >= 0 ? '+' : '−' }}{{ formatUsd(absNet()) }}
+        </span>
+      </div>
+    </div>
+
+    @if (existingMedia().length > 0) {
+      <div class="md:col-span-2">
+        <div class="uplabel mb-2">Adjuntos guardados</div>
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          @for (m of existingMedia(); track m.id) {
+            <div class="media-tile group">
+              @if (m.kind === 'IMAGE') {
+                <img
+                  [src]="m.thumbnailUrl ?? m.url"
+                  class="h-full w-full object-cover"
+                  alt="Adjunto"
+                />
+              } @else {
+                <div
+                  class="grid h-full w-full place-items-center text-xs"
+                  style="color: var(--qp-mute)"
+                >
+                  🎬 video
+                </div>
+              }
+              <button
+                type="button"
+                (click)="removeExisting(m.id)"
+                class="media-remove"
+                aria-label="Eliminar adjunto"
+              >
+                <lucide-icon [name]="iconTrash" class="h-3 w-3"></lucide-icon>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="md:col-span-2">
+      <div
+        cdkDropList
+        (cdkDropListDropped)="onDropFiles($event)"
+        (dragover)="onDragOver($event)"
+        (drop)="onDrop($event)"
+        class="dropzone"
+      >
+        <lucide-icon [name]="iconImage" class="h-5 w-5"></lucide-icon>
+        <p>Arrastra imágenes o videos aquí o</p>
+        <label class="pill cursor-pointer">
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            class="hidden"
+            (change)="onFiles($event)"
+          />
+          Selecciona archivos
+        </label>
+        <p style="color: var(--qp-mute-2)">JPEG/PNG/WEBP/MP4 — se subirán al guardar</p>
+      </div>
+
+      @if (pending().length > 0) {
+        <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          @for (p of pending(); track p.previewUrl) {
+            <div cdkDrag class="media-tile group">
+              @if (p.kind === 'IMAGE') {
+                <img [src]="p.previewUrl" class="h-full w-full object-cover" alt="Preview" />
+              } @else {
+                <div
+                  class="grid h-full w-full place-items-center text-xs"
+                  style="color: var(--qp-mute)"
+                >
+                  🎬 {{ p.file.name }}
+                </div>
+              }
+              <button
+                type="button"
+                (click)="removePending(p.previewUrl)"
+                class="media-remove"
+                aria-label="Quitar"
+              >
+                <lucide-icon [name]="iconTrash" class="h-3 w-3"></lucide-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <journal-error-banner class="md:col-span-2" [message]="errorMessage()" />
+  </form>
+
+  <div dialog-footer class="contents">
+    <button type="button" (click)="cancel()" class="pill">Cancelar</button>
+    <journal-submit-button
+      type="button"
+      (clicked)="submit()"
+      [loading]="submitting()"
+      [disabled]="form.invalid"
+      [label]="isEdit ? 'Guardar cambios' : 'Crear trade'"
+      loadingLabel="Guardando…"
+    />
+  </div>
+</journal-dialog>

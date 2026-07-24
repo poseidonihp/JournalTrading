@@ -1,0 +1,327 @@
+// Schema del Trading Journal — Fase 2
+// Documentación de modelos en journal.md
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// Users
+// =====================================================================
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name")
+  timezone     String   @default("America/Bogota")
+  locale       String   @default("es")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  accounts        Account[]
+  trades          Trade[]
+  tradeTypes      TradeType[]
+  trackerAccounts TrackerAccount[]
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+// =====================================================================
+// Refresh Tokens (rotación + detección de reuso por familia)
+// =====================================================================
+
+model RefreshToken {
+  id            String    @id @default(uuid()) @db.Uuid
+  // jti del JWT de refresh (claim único por token emitido).
+  jti           String    @unique @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  // Todos los tokens descendientes de un mismo login comparten familia.
+  // Si se detecta reuso de un jti revocado, se revoca la familia entera.
+  familyId      String    @map("family_id") @db.Uuid
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(3)
+  // jti del token que reemplazó a éste durante la rotación.
+  replacedByJti String?   @map("replaced_by_jti") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+// =====================================================================
+// Accounts (multi-cuenta por usuario)
+// =====================================================================
+
+model Account {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  name           String
+  broker         String?
+  currency       String   @default("USD")
+  initialBalance Decimal  @default(0) @map("initial_balance") @db.Decimal(18, 2)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // Fee opcional por data en tiempo real (Rithmic, CQG, etc.)
+  dataFeeEnabled       Boolean           @default(false) @map("data_fee_enabled")
+  dataFeeAmount        Decimal           @default(0) @map("data_fee_amount") @db.Decimal(18, 2)
+  dataFeeFrequency     DataFeeFrequency? @map("data_fee_frequency")
+  dataFeeNextChargeAt  DateTime?         @map("data_fee_next_charge_at") @db.Timestamptz(3)
+  dataFeeLastChargedAt DateTime?         @map("data_fee_last_charged_at") @db.Timestamptz(3)
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades         Trade[]
+  dataFeeCharges DataFeeCharge[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("accounts")
+}
+
+enum DataFeeFrequency {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+model DataFeeCharge {
+  id          String           @id @default(uuid()) @db.Uuid
+  accountId   String           @map("account_id") @db.Uuid
+  amount      Decimal          @db.Decimal(18, 2)
+  frequency   DataFeeFrequency
+  periodStart DateTime         @map("period_start") @db.Timestamptz(3)
+  chargedAt   DateTime         @default(now()) @map("charged_at") @db.Timestamptz(3)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, chargedAt])
+  @@map("data_fee_charges")
+}
+
+// =====================================================================
+// Instruments (catálogo)
+// =====================================================================
+
+enum InstrumentCategory {
+  FUTURE
+  CFD
+}
+
+model Instrument {
+  id                           String             @id @default(uuid()) @db.Uuid
+  symbol                       String             @unique
+  name                         String
+  category                     InstrumentCategory
+  pointValue                   Decimal            @map("point_value") @db.Decimal(18, 8)
+  defaultCommissionPerContract Decimal            @map("default_commission_per_contract") @db.Decimal(18, 4)
+  tickSize                     Decimal            @map("tick_size") @db.Decimal(18, 8)
+  currency                     String             @default("USD")
+  createdAt                    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  trades Trade[]
+
+  @@map("instruments")
+}
+
+// =====================================================================
+// Trades (núcleo del journal)
+// =====================================================================
+
+enum TradeDirection {
+  LONG
+  SHORT
+}
+
+enum ExitReason {
+  TARGET
+  TRAILING_STOP
+  INITIAL_STOP
+  MANUAL
+}
+
+enum Emotion {
+  CONFIDENT
+  MISTAKE
+  PARAM_ERROR
+  EMOTIONAL_ERROR
+}
+
+enum TradeSource {
+  MANUAL
+  CSV
+  NINJATRADER
+}
+
+model Trade {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  accountId          String         @map("account_id") @db.Uuid
+  instrumentId       String         @map("instrument_id") @db.Uuid
+  enteredAt          DateTime       @map("entered_at") @db.Timestamptz(3)
+  exitedAt           DateTime       @map("exited_at") @db.Timestamptz(3)
+  durationSeconds    Int            @map("duration_seconds")
+  contracts          Int
+  direction          TradeDirection
+  tradeTypeId        String         @map("trade_type_id") @db.Uuid
+  entryReason        String?        @map("entry_reason")
+  exitReason         ExitReason     @map("exit_reason")
+  emotion            Emotion
+  pointsTotal        Decimal        @map("points_total") @db.Decimal(18, 4)
+  pointValueSnapshot Decimal        @map("point_value_snapshot") @db.Decimal(18, 8)
+  gross              Decimal        @db.Decimal(18, 2)
+  commission         Decimal        @db.Decimal(18, 2)
+  net                Decimal        @db.Decimal(18, 2)
+  notes              String?
+  source             TradeSource    @default(MANUAL)
+  externalId         String?        @map("external_id")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account    Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  instrument Instrument   @relation(fields: [instrumentId], references: [id], onDelete: Restrict)
+  tradeType  TradeType    @relation(fields: [tradeTypeId], references: [id], onDelete: Restrict)
+  media      TradeMedia[]
+
+  @@unique([source, externalId])
+  @@index([userId, accountId])
+  @@index([enteredAt])
+  @@map("trades")
+}
+
+// =====================================================================
+// TradeMedia (imágenes/videos asociados al trade)
+// =====================================================================
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+model TradeMedia {
+  id            String    @id @default(uuid()) @db.Uuid
+  tradeId       String    @map("trade_id") @db.Uuid
+  kind          MediaKind
+  path          String
+  thumbnailPath String?   @map("thumbnail_path")
+  mime          String
+  sizeBytes     Int       @map("size_bytes")
+  position      Int       @default(0)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@index([tradeId])
+  @@map("trade_media")
+}
+
+// =====================================================================
+// Trade Types (catálogo administrable por usuario)
+// =====================================================================
+
+model TradeType {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  color     String   @default("#6366f1")
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades Trade[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("trade_types")
+}
+
+// =====================================================================
+// Sessions (Fase 4 — daily journal con notas markdown)
+// =====================================================================
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  date      DateTime @db.Date
+  notes     String   @default("")
+  mood      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("sessions")
+}
+
+// =====================================================================
+// Import Batches (Fase 4 — historial de imports CSV)
+// =====================================================================
+
+enum ImportStatus {
+  PENDING
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+// =====================================================================
+// Tracker Accounts (cuentas de prop firms: evaluaciones / live)
+// =====================================================================
+
+enum TrackerAccountType {
+  EVALUATION
+  LIVE
+}
+
+enum TrackerAccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model TrackerAccount {
+  id            String               @id @default(uuid()) @db.Uuid
+  userId        String               @map("user_id") @db.Uuid
+  name          String
+  type          TrackerAccountType
+  status        TrackerAccountStatus @default(ACTIVE)
+  company       String
+  totalExpenses Decimal              @default(0) @map("total_expenses") @db.Decimal(18, 2)
+  totalProfits  Decimal              @default(0) @map("total_profits") @db.Decimal(18, 2)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("tracker_accounts")
+}
+
+model ImportBatch {
+  id            String       @id @default(uuid()) @db.Uuid
+  userId        String       @map("user_id") @db.Uuid
+  accountId     String       @map("account_id") @db.Uuid
+  source        TradeSource
+  fileName      String       @map("file_name")
+  status        ImportStatus @default(PENDING)
+  totalRows     Int          @default(0) @map("total_rows")
+  importedCount Int          @default(0) @map("imported_count")
+  skippedCount  Int          @default(0) @map("skipped_count")
+  errorMessage  String?      @map("error_message")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@map("import_batches")
+}

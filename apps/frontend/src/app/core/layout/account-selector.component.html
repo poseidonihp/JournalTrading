@@ -1,0 +1,52 @@
+<button
+  type="button"
+  [cdkMenuTriggerFor]="menu"
+  class="pill w-full justify-between"
+  style="padding: 6px 10px;"
+  aria-label="Seleccionar cuenta"
+>
+  <span class="flex items-center gap-2 truncate" style="color: var(--qp-ink);">
+    <span class="truncate text-[12px] font-medium">{{ label() }}</span>
+  </span>
+  <lucide-icon
+    [name]="iconChevron"
+    class="h-3.5 w-3.5 shrink-0"
+    style="color: var(--qp-mute);"
+  ></lucide-icon>
+</button>
+
+<ng-template #menu>
+  <ul cdkMenu class="qp-menu z-50 mt-1 min-w-[220px]">
+    <li
+      cdkMenuItem
+      (cdkMenuItemTriggered)="select('ALL')"
+      class="qp-menu-item"
+    >
+      <span>Todas las cuentas</span>
+      @if (selectedId() === 'ALL') {
+        <lucide-icon [name]="iconCheck" class="h-3.5 w-3.5" style="color: var(--qp-sage);"></lucide-icon>
+      }
+    </li>
+    <li class="qp-menu-separator"></li>
+    @for (a of accounts(); track a.id) {
+      <li
+        cdkMenuItem
+        (cdkMenuItemTriggered)="select(a.id)"
+        class="qp-menu-item"
+        [class.opacity-60]="!a.isActive"
+      >
+        <span class="flex items-center gap-2 truncate">
+          <span class="truncate">{{ a.name }}</span>
+          @if (a.broker) {
+            <span class="text-[10px] uppercase tracking-wider" style="color: var(--qp-mute-2);">
+              {{ a.broker }}
+            </span>
+          }
+        </span>
+        @if (selectedId() === a.id) {
+          <lucide-icon [name]="iconCheck" class="h-3.5 w-3.5 shrink-0" style="color: var(--qp-sage);"></lucide-icon>
+        }
+      </li>
+    }
+  </ul>
+</ng-template>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Trading Journal</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    CSP base para la SPA. En producción conviene servirla también como cabecera HTTP
+    desde el proxy/host (permite frame-ancestors y report-to, que el meta ignora).
+    'unsafe-inline' en style-src es necesario por los estilos inline de Angular/Tailwind.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    connect-src 'self';
+    img-src 'self' data: blob:;
+    media-src 'self' blob:;
+    font-src 'self' https://fonts.gstatic.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    script-src 'self';
+    base-uri 'self';
+    object-src 'none';
+    form-action 'self';
+    frame-ancestors 'none'
+  ">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

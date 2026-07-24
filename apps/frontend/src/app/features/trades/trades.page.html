@@ -1,0 +1,238 @@
+<div class="flex h-full flex-col overflow-hidden">
+  <!-- Topbar -->
+  <div class="flex items-end justify-between px-9 pt-6">
+    <div>
+      <h1 class="serif text-[44px] leading-none">
+        Trades
+        <span
+          class="ml-3 align-middle text-[13px]"
+          style="font-family: 'Geist', sans-serif; font-style: normal; letter-spacing: 0; color: var(--qp-mute-2);"
+        >
+          Última importación · hace {{ lastImport() }}
+        </span>
+      </h1>
+      <p class="mt-2 flex items-center gap-2 text-[12px]" style="color: var(--qp-mute);">
+        <span>{{ rangeLabel() }}</span>
+        <span class="inline-block h-[3px] w-[3px] rounded-full" style="background: var(--qp-mute-2);"></span>
+        <span>{{ activeDays() }} días activos</span>
+        <span class="inline-block h-[3px] w-[3px] rounded-full" style="background: var(--qp-mute-2);"></span>
+        <span>
+          {{ tradeCount() }} trades · {{ kpiCounts().winners }}G / {{ kpiCounts().losers }}P
+        </span>
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a
+        [href]="exportCsvUrl()"
+        target="_blank"
+        rel="noopener"
+        class="pill"
+      >
+        <lucide-icon [name]="iconDownload" class="h-3.5 w-3.5"></lucide-icon>
+        CSV
+      </a>
+      <button type="button" class="pill" (click)="openImport()">
+        <lucide-icon [name]="iconUpload" class="h-3.5 w-3.5"></lucide-icon>
+        Importar
+      </button>
+      <button type="button" (click)="openForm()" class="pill pill-solid">
+        <lucide-icon [name]="iconSparkles" class="h-3.5 w-3.5"></lucide-icon>
+        Nuevo trade
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpi-grid mx-9 mt-6">
+    <div class="kpi-cell">
+      <span class="uplabel">Neto del período</span>
+      <div class="flex items-end gap-3">
+        <span class="kpi-value" [style.color]="netSum() >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'">
+          {{ netSum() >= 0 ? '+' : '−' }}{{ formatUsdAbs(netSum()) }}
+        </span>
+        <svg [attr.width]="160" [attr.height]="42">
+          <path
+            [attr.d]="sparkArea()"
+            [attr.fill]="netSum() >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+            opacity="0.1"
+          />
+          <polyline
+            [attr.points]="sparkLine()"
+            fill="none"
+            [attr.stroke]="netSum() >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+            stroke-width="1.4"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+      <span class="text-[11px]" style="color: var(--qp-mute);">
+        {{ tradeCount() }} trades · neto acumulado
+      </span>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="uplabel">Win rate</span>
+      <span class="kpi-value">
+        {{ winRate() }}<span class="ml-0.5 text-[18px]" style="font-family:'Geist',sans-serif; font-style:normal; color: var(--qp-mute-2);">%</span>
+      </span>
+      <span class="text-[11px]" style="color: var(--qp-mute);">
+        {{ kpiCounts().winners }} ganadores · {{ kpiCounts().losers }} perdedores
+      </span>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="uplabel">Profit factor</span>
+      <span class="kpi-value">{{ profitFactor() }}</span>
+      <span class="text-[11px]" style="color: var(--qp-mute);">
+        {{ formatUsd(kpiCounts().avgWinner) }} / {{ formatUsd(kpiCounts().avgLoser) }} promedio
+      </span>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="uplabel">Expectancy</span>
+      <span class="kpi-value">{{ formatUsdAbs(expectancy()) }}</span>
+      <span class="text-[11px]" style="color: var(--qp-mute);">por trade</span>
+    </div>
+
+    <div class="kpi-cell">
+      <span class="uplabel">Mejor / peor</span>
+      <span class="kpi-value">
+        <span style="color: var(--qp-sage);">+{{ formatUsdAbs(kpiCounts().best) }}</span>
+      </span>
+      <span class="text-[11px]" style="color: var(--qp-clay);">
+        −{{ formatUsdAbs(kpiCounts().worst) }} peor trade
+      </span>
+    </div>
+  </div>
+
+  <!-- Filter chips -->
+  <div class="mx-9 mt-5">
+    <app-trades-filter-bar />
+  </div>
+
+  <!-- Card: table + drawer -->
+  <div class="mx-9 mb-6 mt-5 flex flex-1 overflow-hidden">
+    <div class="flex flex-1 flex-col overflow-hidden" [attr.data-density]="density()">
+      <!-- Header row -->
+      <div class="head">
+        <span>Día</span>
+        <span>Producto</span>
+        <span></span>
+        <span class="ta-right">Ctrs</span>
+        <span>Hora</span>
+        <span>Duración</span>
+        <span>Setup</span>
+        <span>Salida</span>
+        <span>Dir.</span>
+        <span>Emoción</span>
+        <span class="ta-right">Puntos</span>
+        <span class="ta-right">Neto</span>
+      </div>
+
+      @if (loading()) {
+        <div class="flex-1 overflow-hidden px-2 pt-3" aria-busy="true" aria-label="Cargando trades">
+          <journal-skeleton [rows]="10" height="40px" />
+        </div>
+      } @else if (rows().length === 0) {
+        <journal-empty-state
+          title="Aún no hay trades por aquí."
+          description="Importa tu primer día o registra un trade a mano."
+        >
+          <button type="button" (click)="openForm()" class="pill pill-solid mt-1">
+            ＋ Registrar el primer trade
+          </button>
+        </journal-empty-state>
+      } @else {
+        <div class="flex-1 overflow-auto">
+          @for (row of rows(); track row.id; let i = $index) {
+            <div
+              (click)="selectTrade(row)"
+              (keydown.enter)="selectTrade(row)"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="rowAriaLabel(row)"
+              class="row"
+              [class.selected]="row.id === selectedId()"
+              [class.day-change]="isDayChange(i)"
+            >
+              <span style="color: var(--qp-mute-2); font-weight: 400;">
+                {{ dayLabel(row) }}
+              </span>
+              <span class="producto-cell">{{ row.instrumentSymbol }}</span>
+              <span class="thumb-cell">
+                @if (firstImage(row); as img) {
+                  <img
+                    [src]="img.thumbnailUrl ?? img.url"
+                    class="thumb-img"
+                    alt="Adjunto"
+                  />
+                }
+              </span>
+              <span class="ta-right" style="color: var(--qp-mute);">{{ row.contracts }}</span>
+              <span style="color: var(--qp-mute);">{{ formatTime(row.enteredAt) }}</span>
+              <span style="color: var(--qp-mute);">{{ formatDuration(row.durationSeconds) }}</span>
+              <span>
+                <span
+                  class="setup-tag"
+                  [style.background]="row.tradeTypeColor + '22'"
+                  [style.color]="row.tradeTypeColor"
+                  [style.border]="'1px solid ' + row.tradeTypeColor + '55'"
+                >{{ row.tradeTypeName }}</span>
+              </span>
+              <span style="color: var(--qp-mute);">{{ labelExit(row.exitReason) }}</span>
+              <span>
+                <span
+                  class="dir-chip"
+                  [style.color]="row.direction === 'LONG' ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+                >
+                  <span
+                    class="dir-triangle"
+                    [style.borderBottom]="row.direction === 'LONG' ? '5px solid var(--qp-sage)' : 'none'"
+                    [style.borderTop]="row.direction === 'SHORT' ? '5px solid var(--qp-clay)' : 'none'"
+                  ></span>
+                  {{ row.direction === 'LONG' ? 'LONG' : 'SHORT' }}
+                </span>
+              </span>
+              <span>
+                <span class="emo" [style.background]="emotionBg(row.emotion)" [style.color]="emotionFg(row.emotion)">
+                  {{ labelEmotion(row.emotion) }}
+                </span>
+              </span>
+              <span
+                class="ta-right"
+                [style.color]="Number(row.net) >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+                style="font-weight: 500;"
+              >
+                {{ Number(row.pointsTotal) >= 0 ? '+' : '' }}{{ formatPoints(row.pointsTotal) }}
+              </span>
+              <span
+                class="neto-cell"
+                [style.color]="Number(row.net) >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+              >
+                {{ Number(row.net) >= 0 ? '+' : '−' }}{{ formatUsdAbs(row.net) }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div
+          class="border-t px-6 py-2 text-xs"
+          style="border-color: var(--qp-clay); background: rgba(181,80,60,0.08); color: var(--qp-clay);"
+        >
+          {{ errorMessage() }}
+        </div>
+      }
+    </div>
+
+    @if (selected(); as trade) {
+      <app-trade-detail-drawer
+        [trade]="trade"
+        (dismissed)="closeDetail()"
+        (edited)="openForm(trade)"
+        (removed)="confirmDelete(trade)"
+      />
+    }
+  </div>
+</div>

@@ -12,8 +12,10 @@ export class LocalDiskDriver extends StorageDriver {
 
   constructor() {
     super();
+    // `||` y no `??`: STORAGE_ROOT vacío debe caer al default, porque resolve('')
+    // devolvería el CWD y los uploads acabarían dentro de apps/backend.
     const fromEnv = process.env.STORAGE_ROOT;
-    this.root = resolve(fromEnv ?? join(process.cwd(), '..', '..', 'storage', 'uploads'));
+    this.root = resolve(fromEnv || join(process.cwd(), '..', '..', 'storage', 'uploads'));
   }
 
   get rootPath(): string {

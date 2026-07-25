@@ -37,6 +37,10 @@ const envSchema = z
         1,
         'RSA_PRIVATE_KEY_B64 es requerido. Genéralo con: pnpm --filter @journal/backend gen:rsa',
       ),
+    // Raíz de los uploads en disco. Debe declararse aquí aunque LocalDiskDriver la
+    // lea de process.env: ConfigModule sólo propaga a process.env las claves que
+    // devuelve este validador, y Zod descarta las no declaradas.
+    STORAGE_ROOT: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {

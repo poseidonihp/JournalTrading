@@ -20,17 +20,58 @@
  *   --create-admin <email>  Crea además este usuario; password en ADMIN_PASSWORD
  *   --admin-name <nombre>   displayName del admin (default: Admin)
  *   --apply                 Ejecuta los cambios (sin este flag no escribe nada)
+ *
+ * Conexión: usa `DATABASE_URL` del entorno si está definida; si no, la lee de
+ * `apps/backend/.env`. El cliente de Prisma no carga `.env` de forma fiable
+ * fuera del CLI, así que la URL se resuelve acá y se le pasa explícitamente.
  */
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 const defaultSourceEmail = 'dev@journal.local';
 const defaultAdminName = 'Admin';
 const bcryptRounds = 12;
 const minPasswordLength = 8;
 const labelPadding = 26;
+const databaseUrlKey = 'DATABASE_URL';
+const envPath = join(__dirname, '..', '.env');
+
+/**
+ * Extrae el valor de una variable de un archivo .env.
+ * @param {string} filePath - Ruta del archivo .env
+ * @param {string} key - Nombre de la variable
+ * @returns {string | null} Valor sin comillas, o null si no está
+ */
+function readEnvFileValue(filePath: string, key: string): string | null {
+  if (!existsSync(filePath)) {
+    return null;
+  }
+  const line = readFileSync(filePath, 'utf8')
+    .split(/\r?\n/)
+    .find((row) => row.trimStart().startsWith(`${key}=`));
+  if (line === undefined) {
+    return null;
+  }
+  const value = line.slice(line.indexOf('=') + 1).trim();
+  return value === '' ? null : value.replace(/^["']|["']$/g, '');
+}
+
+/**
+ * Resuelve la cadena de conexión: primero el entorno, luego apps/backend/.env.
+ * @returns {string | null} URL de conexión o null si no se encontró
+ */
+function resolveDatabaseUrl(): string | null {
+  const fromEnv = process.env[databaseUrlKey];
+  if (fromEnv !== undefined && fromEnv !== '') {
+    return fromEnv;
+  }
+  return readEnvFileValue(envPath, databaseUrlKey);
+}
+
+const databaseUrl = resolveDatabaseUrl();
+const prisma = new PrismaClient({ datasourceUrl: databaseUrl ?? undefined });
 
 interface ICliOptions {
   fromEmail: string;
@@ -310,6 +351,13 @@ function printCounts(counts: [string, number][]): void {
  * @returns {Promise<void>}
  */
 async function main(): Promise<void> {
+  if (databaseUrl === null) {
+    throw new Error(
+      `No se encontró ${databaseUrlKey} ni en el entorno ni en ${envPath}. ` +
+        `Definila antes de correr el script: $env:${databaseUrlKey}='postgresql://usuario:pass@localhost:5432/journal_prod'`,
+    );
+  }
+
   const options = parseArgs(process.argv.slice(2));
 
   const source = await requireUser(options.fromEmail);

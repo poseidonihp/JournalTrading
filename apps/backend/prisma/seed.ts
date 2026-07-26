@@ -12,6 +12,10 @@ const SEED_USER_EMAIL = process.env.SEED_USER_EMAIL ?? 'dev@journal.local';
 const SEED_USER_PASSWORD = process.env.SEED_USER_PASSWORD ?? 'journal123';
 const SEED_USER_NAME = process.env.SEED_USER_NAME ?? 'Dev User';
 
+// El usuario de desarrollo lleva password por defecto conocida, así que sólo se
+// siembra si se pide explícitamente. En producción no debe definirse el flag.
+const seedDevUser = process.env.SEED_DEV_USER === 'true';
+
 async function main() {
   // Instrumentos (idempotente: upsert por symbol)
   const instruments = [
@@ -59,6 +63,13 @@ async function main() {
     });
   }
   console.log(`✓ Instrumentos sembrados (${instruments.length})`);
+
+  // Lo que sigue son datos de ejemplo colgados del usuario de desarrollo:
+  // no debe recrearse en producción (password por defecto conocida).
+  if (!seedDevUser) {
+    console.info('↷ Usuario dev y datos de ejemplo omitidos (SEED_DEV_USER != true)');
+    return;
+  }
 
   // User de desarrollo
   const passwordHash = await bcrypt.hash(SEED_USER_PASSWORD, 12);

@@ -25,8 +25,8 @@ export class LoginComponent {
   private readonly router = inject(Router);
 
   protected readonly form = this.fb.nonNullable.group({
-    email: ['dev@journal.local', [Validators.required, Validators.email]],
-    password: ['journal123', [Validators.required, Validators.minLength(1)]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(1)]],
   });
 
   async submit(): Promise<void> {

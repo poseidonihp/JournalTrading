@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import type { YearlyMonth } from '@journal/shared-types';
 import { formatUsd } from '../../shared/format';
 
@@ -10,10 +10,28 @@ const PADDING_TOP = 24;
 const PADDING_BOTTOM = 32;
 const GRID_STEPS = 5;
 const SMOOTHING = 0.22;
+const tipFlipThresholdPx = 72;
+const tipEdgePct = 16;
+const niceStepOne = 1;
+const niceStepTwo = 2;
+const niceStepFive = 5;
+const niceStepTen = 10;
 
 interface GridLine { y: number; label: string }
 interface XTick { x: number; label: string }
-interface DotModel { x: number; y: number; positive: boolean }
+
+interface MonthMarker {
+  key: number;
+  y: number;
+  leftPct: number;
+  positive: boolean;
+  hasTrades: boolean;
+  monthLabel: string;
+  netLabel: string;
+  accumLabel: string;
+  tradesLabel: string;
+  tipTransform: string;
+}
 
 interface RenderModel {
   isEmpty: boolean;
@@ -23,12 +41,21 @@ interface RenderModel {
   clipId: string;
   gridLines: GridLine[];
   xTicks: XTick[];
-  dots: DotModel[];
+  markers: MonthMarker[];
   hasPositive: boolean;
   hasNegative: boolean;
 }
 
 const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MONTH_FULL_LABELS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+function formatDelta(value: number): string {
+  const formatted = formatUsd(value);
+  return value > 0 ? `+${formatted}` : formatted;
+}
 
 let counter = 0;
 function nextId(): string {
@@ -40,74 +67,13 @@ function nextId(): string {
   selector: 'app-yearly-curve',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (model().isEmpty) {
-      <div class="py-16 text-center text-sm" style="color: var(--qp-mute-2);">
-        Sin trades en el año seleccionado.
-      </div>
-    } @else {
-      <svg viewBox="0 0 1100 280" preserveAspectRatio="none" class="w-full h-[280px]">
-        <defs>
-          <linearGradient [attr.id]="'yc-pos-' + model().clipId" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--qp-sage)" stop-opacity="0.45" />
-            <stop offset="100%" stop-color="var(--qp-sage)" stop-opacity="0.05" />
-          </linearGradient>
-          <linearGradient [attr.id]="'yc-neg-' + model().clipId" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--qp-clay)" stop-opacity="0.05" />
-            <stop offset="100%" stop-color="var(--qp-clay)" stop-opacity="0.45" />
-          </linearGradient>
-          <clipPath [attr.id]="'yc-pos-clip-' + model().clipId">
-            <rect x="0" y="0" width="1100" [attr.height]="model().zeroY" />
-          </clipPath>
-          <clipPath [attr.id]="'yc-neg-clip-' + model().clipId">
-            <rect x="0" [attr.y]="model().zeroY" width="1100" [attr.height]="280 - model().zeroY" />
-          </clipPath>
-        </defs>
-
-        @for (g of model().gridLines; track g.y) {
-          <line x1="64" [attr.y1]="g.y" x2="1076" [attr.y2]="g.y"
-            stroke="var(--qp-line)" stroke-opacity="0.45" stroke-dasharray="2 5"
-            vector-effect="non-scaling-stroke" />
-          <text x="58" [attr.y]="g.y + 3" font-size="10" text-anchor="end" fill="var(--qp-mute-2)">
-            {{ g.label }}
-          </text>
-        }
-
-        <line x1="64" [attr.y1]="model().zeroY" x2="1076" [attr.y2]="model().zeroY"
-          stroke="var(--qp-line-strong)" stroke-width="1.25" vector-effect="non-scaling-stroke" />
-        <text x="58" [attr.y]="model().zeroY + 3" font-size="10" text-anchor="end"
-          font-weight="600" fill="var(--qp-mute-2)">$0</text>
-
-        @if (model().hasPositive) {
-          <path [attr.d]="model().area" [attr.fill]="'url(#yc-pos-' + model().clipId + ')'"
-            [attr.clip-path]="'url(#yc-pos-clip-' + model().clipId + ')'" />
-        }
-        @if (model().hasNegative) {
-          <path [attr.d]="model().area" [attr.fill]="'url(#yc-neg-' + model().clipId + ')'"
-            [attr.clip-path]="'url(#yc-neg-clip-' + model().clipId + ')'" />
-        }
-
-        <path [attr.d]="model().path" fill="none" stroke="var(--qp-ink)"
-          stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"
-          vector-effect="non-scaling-stroke" />
-
-        @for (t of model().xTicks; track t.x) {
-          <text [attr.x]="t.x" y="264" font-size="10" text-anchor="middle" fill="var(--qp-mute-2)">
-            {{ t.label }}
-          </text>
-        }
-
-        @for (d of model().dots; track d.x) {
-          <circle [attr.cx]="d.x" [attr.cy]="d.y" r="3.5"
-            [attr.fill]="d.positive ? 'var(--qp-sage)' : 'var(--qp-clay)'"
-            stroke="var(--qp-bg)" stroke-width="1.5" />
-        }
-      </svg>
-    }
-  `,
+  templateUrl: './yearly-curve.component.html',
+  styleUrl: './yearly-curve.component.scss',
 })
 export class YearlyCurveComponent {
   readonly months = input.required<YearlyMonth[]>();
+
+  protected readonly hoveredKey = signal<number | null>(null);
 
   private readonly clipId = nextId();
 
@@ -136,11 +102,7 @@ export class YearlyCurveComponent {
 
     const gridLines = YearlyCurveComponent.niceGrid(niceMin, niceMax, scaleY);
     const xTicks: XTick[] = months.map((m, i) => ({ x: scaleX(i), label: MONTH_LABELS[m.month - 1] ?? '' }));
-    const dots: DotModel[] = months.map((m, i) => ({
-      x: scaleX(i),
-      y: scaleY(values[i] ?? 0),
-      positive: (values[i] ?? 0) >= 0,
-    }));
+    const markers = YearlyCurveComponent.buildMarkers(months, values, scaleX, scaleY);
 
     return {
       isEmpty: false,
@@ -150,11 +112,71 @@ export class YearlyCurveComponent {
       clipId,
       gridLines,
       xTicks,
-      dots,
+      markers,
       hasPositive: rawMax > 0,
       hasNegative: rawMin < 0,
     };
   });
+
+  protected readonly hoveredMarker = computed<MonthMarker | null>(() => {
+    const key = this.hoveredKey();
+    if (key === null) {
+      return null;
+    }
+    return this.model().markers.find(marker => marker.key === key) ?? null;
+  });
+
+  /**
+   * Construye un punto por mes con los datos que muestra el tooltip.
+   * @private
+   * @param {YearlyMonth[]} months - Meses del año consultado
+   * @param {number[]} values - Acumulado neto de cada mes
+   * @param {Function} scaleX - Escala del índice del mes a coordenada X
+   * @param {Function} scaleY - Escala del acumulado a coordenada Y
+   * @returns {MonthMarker[]}
+   */
+  private static buildMarkers(
+    months: YearlyMonth[],
+    values: number[],
+    scaleX: (i: number) => number,
+    scaleY: (v: number) => number,
+  ): MonthMarker[] {
+    return months.map((month, index) => {
+      const accum = values[index] ?? 0;
+      const y = scaleY(accum);
+      const leftPct = (scaleX(index) / WIDTH) * 100;
+      return {
+        y,
+        leftPct,
+        key: month.month,
+        positive: accum >= 0,
+        hasTrades: month.trades > 0,
+        monthLabel: MONTH_FULL_LABELS[month.month - 1] ?? '',
+        netLabel: formatDelta(Number(month.net)),
+        accumLabel: formatUsd(accum),
+        tradesLabel: month.trades === 1 ? '1 trade' : `${month.trades} trades`,
+        tipTransform: YearlyCurveComponent.tipTransform(leftPct, y),
+      };
+    });
+  }
+
+  /**
+   * Ubica el tooltip sobre el punto, girándolo hacia dentro en bordes y arriba.
+   * @private
+   * @param {number} leftPct - Posición horizontal del punto en porcentaje
+   * @param {number} y - Posición vertical del punto en px
+   * @returns {string} Valor de la propiedad CSS transform
+   */
+  private static tipTransform(leftPct: number, y: number): string {
+    const vertical = y > tipFlipThresholdPx ? 'calc(-100% - 12px)' : '12px';
+    if (leftPct <= tipEdgePct) {
+      return `translate(-12px, ${vertical})`;
+    }
+    if (leftPct >= 100 - tipEdgePct) {
+      return `translate(calc(-100% + 12px), ${vertical})`;
+    }
+    return `translate(-50%, ${vertical})`;
+  }
 
   private static empty(clipId: string): RenderModel {
     return {
@@ -165,14 +187,16 @@ export class YearlyCurveComponent {
       clipId,
       gridLines: [],
       xTicks: [],
-      dots: [],
+      markers: [],
       hasPositive: false,
       hasNegative: false,
     };
   }
 
   private static smoothPath(pts: Array<[number, number]>): string {
-    if (pts.length === 0) return '';
+    if (pts.length === 0) {
+      return '';
+    }
     if (pts.length === 1) {
       const p = pts[0] as [number, number];
       return `M ${p[0]},${p[1]}`;
@@ -195,40 +219,62 @@ export class YearlyCurveComponent {
   }
 
   private static smoothArea(pts: Array<[number, number]>, zeroY: number): string {
-    if (pts.length === 0) return '';
+    if (pts.length === 0) {
+      return '';
+    }
     const line = YearlyCurveComponent.smoothPath(pts);
     const first = pts[0] as [number, number];
-    const last = pts[pts.length - 1] as [number, number];
+    const last = pts.at(-1) as [number, number];
     return `${line} L ${last[0].toFixed(1)},${zeroY.toFixed(1)} L ${first[0].toFixed(1)},${zeroY.toFixed(1)} Z`;
   }
 
+  private static niceMultiplier(norm: number): number {
+    if (norm <= niceStepOne) {
+      return niceStepOne;
+    }
+    if (norm <= niceStepTwo) {
+      return niceStepTwo;
+    }
+    if (norm <= niceStepFive) {
+      return niceStepFive;
+    }
+    return niceStepTen;
+  }
+
   private static niceFloor(min: number): number {
-    if (min >= 0) return 0;
+    if (min >= 0) {
+      return 0;
+    }
     const abs = Math.abs(min);
     const exp = Math.floor(Math.log10(abs));
     const pow = Math.pow(10, exp);
     const norm = abs / pow;
-    const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+    const nice = YearlyCurveComponent.niceMultiplier(norm);
     return -nice * pow;
   }
 
   private static niceCeil(max: number): number {
-    if (max <= 0) return 0;
+    if (max <= 0) {
+      return 0;
+    }
     const exp = Math.floor(Math.log10(max));
     const pow = Math.pow(10, exp);
     const norm = max / pow;
-    const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+    const nice = YearlyCurveComponent.niceMultiplier(norm);
     return nice * pow;
   }
 
   private static niceGrid(min: number, max: number, scaleY: (v: number) => number): GridLine[] {
     const total = max - min;
-    if (total === 0) return [];
+    if (total === 0) {
+      return [];
+    }
     const out: GridLine[] = [];
     for (let i = 0; i <= GRID_STEPS; i++) {
       const v = min + (total * i) / GRID_STEPS;
-      if (Math.abs(v) < 0.0001) continue;
-      out.push({ y: scaleY(v), label: formatUsd(v) });
+      if (Math.abs(v) >= 0.0001) {
+        out.push({ y: scaleY(v), label: formatUsd(v) });
+      }
     }
     return out;
   }

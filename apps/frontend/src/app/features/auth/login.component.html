@@ -2,26 +2,28 @@
   <div class="panel w-full max-w-md rounded-xl px-8 pb-8 pt-9">
     <div class="mb-8 flex flex-col gap-1">
       <div class="serif text-[36px] leading-none">Journal</div>
-      <div class="uplabel">v0.3.0 · Fase 3</div>
       <p class="mt-4 text-[13px]" style="color: var(--qp-mute)">Inicia sesión para continuar.</p>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
-      <journal-field label="Email">
+      <journal-field label="Email" controlId="login-email">
         <input
+          id="login-email"
           type="email"
           autocomplete="username"
           formControlName="email"
           class="field-input"
-          placeholder="email@ejemplo.com"
+          aria-label="Email"
         />
       </journal-field>
-      <journal-field label="Password">
+      <journal-field label="Password" controlId="login-password">
         <input
+          id="login-password"
           type="password"
           autocomplete="current-password"
           formControlName="password"
           class="field-input"
+          aria-label="Password"
         />
       </journal-field>
 

@@ -15,6 +15,7 @@ import { SubmitButtonComponent } from '../../shared/ui/submit-button.component';
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
+
 export class LoginComponent {
   protected readonly iconLogin = LogIn;
   protected readonly submitting = signal(false);
@@ -37,11 +38,9 @@ export class LoginComponent {
     this.errorMessage.set(null);
     try {
       await this.auth.login(this.form.getRawValue());
-      await this.router.navigateByUrl('/trades');
-    } catch (e) {
+      await this.router.navigateByUrl('/dashboard');
+    } catch {
       this.errorMessage.set(this.auth.error() ?? 'No se pudo iniciar sesión');
-      // No relanzamos: el banner ya muestra el error.
-      void e;
     } finally {
       this.submitting.set(false);
     }

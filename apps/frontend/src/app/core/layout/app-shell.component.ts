@@ -26,7 +26,6 @@ interface NavItem {
   label: string;
   route: string;
   disabled?: boolean;
-  badge?: 'NEW' | 'BETA';
 }
 
 @Component({
@@ -96,16 +95,16 @@ export class AppShellComponent {
   });
 
   protected readonly nav: readonly NavItem[] = [
-    { label: 'Dashboard', route: '/dashboard', badge: 'NEW' },
+    { label: 'Dashboard', route: '/dashboard' },
     { label: 'Trades', route: '/trades' },
-    { label: 'Notebook', route: '/notebook', badge: 'NEW' },
-    { label: 'Capital', route: '/capital', badge: 'NEW' },
-    { label: 'Instrumentos', route: '/instruments', badge: 'NEW' },
-    { label: 'Tipos de trade', route: '/tipos-trade', badge: 'NEW' },
-    { label: 'Usuarios', route: '/users', badge: 'NEW' },
-    { label: 'Reports', route: '/reports', badge: 'NEW' },
-    { label: 'Tracker', route: '/tracker', badge: 'NEW' },
-    { label: 'Accounts', route: '/accounts', badge: 'NEW' },
+    { label: 'Notebook', route: '/notebook' },
+    { label: 'Capital', route: '/capital' },
+    { label: 'Instrumentos', route: '/instruments' },
+    { label: 'Tipos de trade', route: '/tipos-trade' },
+    { label: 'Usuarios', route: '/users' },
+    { label: 'Reports', route: '/reports' },
+    { label: 'Tracker', route: '/tracker' },
+    { label: 'Accounts', route: '/accounts' },
     { label: 'Playbooks', route: '/playbooks', disabled: true },
     { label: 'Trade Replay', route: '/replay', disabled: true },
     { label: 'Mentor Mode', route: '/mentor', disabled: true },
@@ -127,6 +126,7 @@ export class AppShellComponent {
         backdropClass: ['bg-black/40'],
         panelClass: ['p-0'],
         autoFocus: 'first-tabbable',
+        disableClose: true,
       },
     );
   }

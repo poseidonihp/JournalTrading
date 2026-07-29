@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import type { EquityCurve } from '@journal/shared-types';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import type { EquityCurve, EquityPoint } from '@journal/shared-types';
 import { formatUsd } from '../../shared/format';
 
 const WIDTH = 800;
@@ -9,6 +9,22 @@ const PADDING_X = 28;
 const LABEL_OFFSET = 8;
 const LABEL_MIN_TOP = 12;
 const LABEL_BOTTOM_MARGIN = 4;
+const maxMarkerPoints = 40;
+const endMarkerRadius = 4.4;
+const tipFlipThresholdPx = 64;
+const tipEdgePct = 18;
+
+interface CurveMarker {
+  key: string;
+  y: number;
+  leftPct: number;
+  positive: boolean;
+  isLast: boolean;
+  deltaLabel: string;
+  accumLabel: string;
+  dateLabel: string;
+  tipTransform: string;
+}
 
 interface RenderModel {
   path: string;
@@ -28,6 +44,7 @@ interface RenderModel {
   netLabel: string;
   netLabelY: number;
   isEmpty: boolean;
+  markers: CurveMarker[];
 }
 
 let instanceCounter = 0;
@@ -36,113 +53,23 @@ function nextInstanceId(): string {
   return `${instanceCounter}`;
 }
 
+function formatDelta(value: number): string {
+  const formatted = formatUsd(value);
+  return value > 0 ? `+${formatted}` : formatted;
+}
+
 @Component({
   selector: 'app-equity-curve',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (model().isEmpty) {
-      <div class="py-12 text-center text-sm" style="color: var(--qp-mute-2);">
-        Sin trades en el rango seleccionado.
-      </div>
-    } @else {
-      <div class="flex items-center justify-between mb-1 text-[11px]" style="color: var(--qp-mute-2);">
-        <span>Max {{ fmt(model().max) }}</span>
-        <span
-          class="serif text-[13px]"
-          [style.color]="model().net >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
-        >
-          Neto {{ fmt(model().net) }}
-        </span>
-        <span>Min {{ fmt(model().min) }}</span>
-      </div>
-      <svg viewBox="0 0 800 220" preserveAspectRatio="none" class="w-full h-[220px]">
-        <defs>
-          <clipPath [attr.id]="'eq-pos-' + model().clipId">
-            <rect x="0" y="0" width="800" [attr.height]="model().zero" />
-          </clipPath>
-          <clipPath [attr.id]="'eq-neg-' + model().clipId">
-            <rect x="0" [attr.y]="model().zero" width="800" [attr.height]="220 - model().zero" />
-          </clipPath>
-        </defs>
-
-        <line
-          x1="0"
-          [attr.y1]="model().zero"
-          x2="800"
-          [attr.y2]="model().zero"
-          stroke="var(--qp-line-strong)"
-          stroke-dasharray="4 4"
-        />
-
-        @if (model().hasPositive) {
-          <path
-            [attr.d]="model().area"
-            fill="var(--qp-sage)"
-            fill-opacity="0.18"
-            [attr.clip-path]="'url(#eq-pos-' + model().clipId + ')'"
-          />
-          <path
-            [attr.d]="model().path"
-            fill="none"
-            stroke="var(--qp-sage)"
-            stroke-width="1.8"
-            stroke-linejoin="round"
-            [attr.clip-path]="'url(#eq-pos-' + model().clipId + ')'"
-          />
-        }
-
-        @if (model().hasNegative) {
-          <path
-            [attr.d]="model().area"
-            fill="var(--qp-clay)"
-            fill-opacity="0.18"
-            [attr.clip-path]="'url(#eq-neg-' + model().clipId + ')'"
-          />
-          <path
-            [attr.d]="model().path"
-            fill="none"
-            stroke="var(--qp-clay)"
-            stroke-width="1.8"
-            stroke-linejoin="round"
-            [attr.clip-path]="'url(#eq-neg-' + model().clipId + ')'"
-          />
-        }
-
-        <text
-          x="4"
-          [attr.y]="model().zero - 4"
-          font-size="10"
-          fill="var(--qp-mute-2)"
-        >$0</text>
-
-        <circle
-          [attr.cx]="model().lastX"
-          [attr.cy]="model().lastY"
-          r="3.5"
-          [attr.fill]="model().net >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
-          stroke="var(--qp-bg)"
-          stroke-width="1.5"
-        />
-        <text
-          [attr.x]="model().lastX - 6"
-          [attr.y]="model().netLabelY"
-          font-size="11"
-          font-weight="600"
-          text-anchor="end"
-          [attr.fill]="model().net >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
-        >{{ model().netLabel }}</text>
-      </svg>
-      <div class="flex items-center justify-between mt-1 text-[11px]" style="color: var(--qp-mute-2);">
-        <span>{{ model().startLabel }}</span>
-        <span>{{ model().tradeCount }} trades</span>
-        <span>{{ model().endLabel }}</span>
-      </div>
-    }
-  `,
+  templateUrl: './equity-curve.component.html',
+  styleUrl: './equity-curve.component.scss',
 })
 export class EquityCurveComponent {
   readonly curve = input.required<EquityCurve>();
+
+  protected readonly endMarkerRadius = endMarkerRadius;
+  protected readonly hoveredKey = signal<string | null>(null);
 
   private readonly clipId = nextInstanceId();
 
@@ -168,6 +95,7 @@ export class EquityCurveComponent {
         netLabel: '',
         netLabelY: 0,
         isEmpty: true,
+        markers: [],
       };
     }
     const values = points.map(p => Number(p.cumulativeNet));
@@ -194,6 +122,7 @@ export class EquityCurveComponent {
     const netLabelY = net >= 0
       ? Math.max(lastY - LABEL_OFFSET, LABEL_MIN_TOP)
       : Math.min(lastY + LABEL_OFFSET * 2, HEIGHT - LABEL_BOTTOM_MARGIN);
+    const markers = EquityCurveComponent.buildMarkers(points, values, stepX, scaleY);
     return {
       clipId,
       path,
@@ -207,6 +136,7 @@ export class EquityCurveComponent {
       lastY,
       netLabel,
       netLabelY,
+      markers,
       zero: scaleY(0),
       tradeCount: points.length,
       hasPositive: max > 0,
@@ -215,8 +145,70 @@ export class EquityCurveComponent {
     };
   });
 
+  protected readonly hoveredMarker = computed<CurveMarker | null>(() => {
+    const key = this.hoveredKey();
+    if (key === null) {
+      return null;
+    }
+    return this.model().markers.find(marker => marker.key === key) ?? null;
+  });
+
   protected fmt(v: number): string {
     return formatUsd(v);
+  }
+
+  /**
+   * Construye un punto por trade con los datos que muestra el tooltip.
+   * @private
+   * @param {EquityPoint[]} points - Puntos de la curva (uno por trade)
+   * @param {number[]} values - Acumulado neto de cada punto
+   * @param {number} stepX - Separación horizontal entre puntos
+   * @param {Function} scaleY - Escala del acumulado a coordenada Y
+   * @returns {CurveMarker[]}
+   */
+  private static buildMarkers(
+    points: EquityPoint[],
+    values: number[],
+    stepX: number,
+    scaleY: (v: number) => number,
+  ): CurveMarker[] {
+    if (points.length > maxMarkerPoints) {
+      return [];
+    }
+    return values.map((value, index) => {
+      const delta = Number(points[index]?.tradeNet ?? 0);
+      const y = scaleY(value);
+      const leftPct = ((PADDING_X + index * stepX) / WIDTH) * 100;
+      return {
+        y,
+        leftPct,
+        key: `${index}`,
+        isLast: index === values.length - 1,
+        positive: delta >= 0,
+        deltaLabel: formatDelta(delta),
+        accumLabel: formatUsd(value),
+        dateLabel: EquityCurveComponent.formatDate(points[index]?.enteredAt),
+        tipTransform: EquityCurveComponent.tipTransform(leftPct, y),
+      };
+    });
+  }
+
+  /**
+   * Ubica el tooltip sobre el punto, girándolo hacia dentro en bordes y arriba.
+   * @private
+   * @param {number} leftPct - Posición horizontal del punto en porcentaje
+   * @param {number} y - Posición vertical del punto en px
+   * @returns {string} Valor de la propiedad CSS transform
+   */
+  private static tipTransform(leftPct: number, y: number): string {
+    const vertical = y > tipFlipThresholdPx ? 'calc(-100% - 12px)' : '12px';
+    if (leftPct <= tipEdgePct) {
+      return `translate(-12px, ${vertical})`;
+    }
+    if (leftPct >= 100 - tipEdgePct) {
+      return `translate(calc(-100% + 12px), ${vertical})`;
+    }
+    return `translate(-50%, ${vertical})`;
   }
 
   private static formatDate(iso: string | undefined): string {

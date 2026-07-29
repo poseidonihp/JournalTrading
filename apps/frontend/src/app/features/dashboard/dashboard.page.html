@@ -12,16 +12,18 @@
       <button type="button" class="icon-btn" (click)="prevMonth()" aria-label="Mes anterior">
         <lucide-icon [name]="iconLeft" class="h-4 w-4"></lucide-icon>
       </button>
-      <select
-        class="month-select capitalize"
-        [ngModel]="month()"
-        (ngModelChange)="onMonthChange($event)"
-        aria-label="Seleccionar mes"
-      >
-        @for (m of availableMonths(); track m.value) {
-          <option [value]="m.value">{{ m.label }}</option>
-        }
-      </select>
+      <label class="flex flex-col">
+        <span class="sr-only">Seleccionar mes</span>
+        <select
+          class="month-select capitalize"
+          [ngModel]="month()"
+          (ngModelChange)="onMonthChange($event)"
+        >
+          @for (m of availableMonths(); track m.value) {
+            <option [value]="m.value">{{ m.label }}</option>
+          }
+        </select>
+      </label>
       <button type="button" class="icon-btn" (click)="nextMonth()" aria-label="Mes siguiente">
         <lucide-icon [name]="iconRight" class="h-4 w-4"></lucide-icon>
       </button>
@@ -43,168 +45,7 @@
     }
 
     @if (kpis(); as k) {
-      <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Net P&L</div>
-            <div
-              class="serif text-[24px] mt-1"
-              [style.color]="Number(k.netPnl) >= 0 ? 'var(--qp-positive)' : 'var(--qp-clay)'"
-            >
-              {{ formatUsd(k.netPnl) }}
-            </div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">
-              Bruto {{ formatUsd(k.grossPnl) }}
-            </div>
-          </div>
-          <div class="kpi-chart kpi-chart-bar">
-            <app-mini-diverge
-              [positive]="Number(k.grossPnl)"
-              [negative]="Number(k.totalCommission)"
-            ></app-mini-diverge>
-            <div class="bar-legend">
-              <span style="color: var(--qp-positive);">{{ formatUsd(k.grossPnl) }}</span>
-              <span style="color: var(--qp-clay);">{{ formatUsd(k.totalCommission) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Profit Factor</div>
-            <div class="serif text-[24px] mt-1">{{ profitFactorLabel() }}</div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">
-              Expectancy {{ formatUsd(k.expectancy) }}
-            </div>
-          </div>
-          <div class="kpi-chart">
-            <app-mini-gauge [value]="k.profitFactor"></app-mini-gauge>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Win Rate</div>
-            <div class="serif text-[24px] mt-1">{{ winRateLabel() }}</div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">
-              {{ k.winningTrades }} W · {{ k.losingTrades }} L · {{ k.breakEvenTrades }} BE
-            </div>
-          </div>
-          <div class="kpi-chart">
-            <app-mini-donut
-              [wins]="k.winningTrades"
-              [losses]="k.losingTrades"
-              [breakEven]="k.breakEvenTrades"
-            ></app-mini-donut>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Trades</div>
-            <div class="serif text-[24px] mt-1">{{ k.totalTrades }}</div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">
-              Duración media {{ avgDurationLabel() }}
-            </div>
-          </div>
-          <div class="kpi-chart kpi-chart-bar">
-            <app-mini-diverge
-              [positive]="k.winningTrades"
-              [negative]="k.losingTrades"
-            ></app-mini-diverge>
-            <div class="bar-legend">
-              <span style="color: var(--qp-positive);">{{ k.winningTrades }}W</span>
-              <span style="color: var(--qp-clay);">{{ k.losingTrades }}L</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Avg Win</div>
-            <div class="serif text-[24px] mt-1" style="color: var(--qp-positive);">
-              {{ formatUsd(k.avgWin) }}
-            </div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">
-              Mayor {{ formatUsd(k.largestWin) }}
-            </div>
-          </div>
-          <div class="kpi-chart kpi-chart-bar">
-            <app-mini-diverge
-              [positive]="Number(k.avgWin)"
-              [negative]="Number(k.avgLoss)"
-            ></app-mini-diverge>
-            <div class="bar-legend">
-              <span style="color: var(--qp-positive);">{{ formatUsd(k.avgWin) }}</span>
-              <span style="color: var(--qp-clay);">{{ formatUsd(k.avgLoss) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Avg Loss</div>
-            <div class="serif text-[24px] mt-1" style="color: var(--qp-clay);">
-              {{ formatUsd(k.avgLoss) }}
-            </div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">
-              Peor {{ formatUsd(k.largestLoss) }}
-            </div>
-          </div>
-          <div class="kpi-chart kpi-chart-bar">
-            <app-mini-diverge
-              [positive]="Number(k.largestWin)"
-              [negative]="Number(k.largestLoss)"
-            ></app-mini-diverge>
-            <div class="bar-legend">
-              <span style="color: var(--qp-positive);">{{ formatUsd(k.largestWin) }}</span>
-              <span style="color: var(--qp-clay);">{{ formatUsd(k.largestLoss) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Mejor / Peor día</div>
-            <div class="serif text-[24px] mt-1" style="color: var(--qp-positive);">
-              {{ formatUsd(k.bestDayNet) }}
-            </div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">
-              Peor {{ formatUsd(k.worstDayNet) }}
-            </div>
-          </div>
-          <div class="kpi-chart kpi-chart-bar">
-            <app-mini-diverge
-              [positive]="Number(k.bestDayNet)"
-              [negative]="Number(k.worstDayNet)"
-            ></app-mini-diverge>
-            <div class="bar-legend">
-              <span style="color: var(--qp-positive);">{{ formatUsd(k.bestDayNet) }}</span>
-              <span style="color: var(--qp-clay);">{{ formatUsd(k.worstDayNet) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-text">
-            <div class="uplabel">Racha</div>
-            <div class="serif text-[24px] mt-1">
-              {{ k.consecutiveWins }}W / {{ k.consecutiveLosses }}L
-            </div>
-            <div class="text-[11px]" style="color: var(--qp-mute-2);">Consecutivas máx.</div>
-          </div>
-          <div class="kpi-chart kpi-chart-bar">
-            <app-mini-diverge
-              [positive]="k.consecutiveWins"
-              [negative]="k.consecutiveLosses"
-            ></app-mini-diverge>
-            <div class="bar-legend">
-              <span style="color: var(--qp-positive);">{{ k.consecutiveWins }}W</span>
-              <span style="color: var(--qp-clay);">{{ k.consecutiveLosses }}L</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <app-kpi-cards [kpis]="k"></app-kpi-cards>
     }
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">

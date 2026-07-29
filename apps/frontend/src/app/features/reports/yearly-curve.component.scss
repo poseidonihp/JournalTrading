@@ -1,0 +1,92 @@
+.yc-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.yc-hit {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.yc-hit::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 1.5px var(--qp-bg);
+  transition:
+    width 120ms ease,
+    height 120ms ease,
+    margin 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.yc-hit.is-empty::after {
+  background: var(--qp-bg);
+  box-shadow: 0 0 0 1.5px var(--qp-line-strong);
+}
+
+.yc-hit.is-hovered::after {
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  box-shadow:
+    0 0 0 1.5px var(--qp-bg),
+    0 0 0 6px color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.yc-tip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 9px;
+  border: 1px solid var(--qp-line-strong);
+  border-radius: 8px;
+  background: var(--qp-bg);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 14%);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  animation: yc-tip-in 120ms ease-out;
+}
+
+.yc-tip-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--qp-mute-2);
+  line-height: 1.2;
+}
+
+.yc-tip-value {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.yc-tip-meta {
+  font-size: 10px;
+  color: var(--qp-mute-2);
+  line-height: 1.2;
+}
+
+@keyframes yc-tip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -21,6 +21,7 @@ export {
 } from './session';
 export {
   InsightsFiltersSchema,
+  KpiPointsSchema,
   KpiSummarySchema,
   CalendarQuerySchema,
   CalendarDaySchema,
@@ -40,6 +41,7 @@ export {
   TimeBucketSchema,
   TimePerformanceReportSchema,
   type InsightsFilters,
+  type KpiPoints,
   type KpiSummary,
   type CalendarQuery,
   type CalendarDay,

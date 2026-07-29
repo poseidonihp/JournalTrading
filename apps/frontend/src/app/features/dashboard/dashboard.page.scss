@@ -25,49 +25,6 @@
   }
 }
 
-.kpi-card {
-  background: var(--qp-bg-soft);
-  border: 1px solid var(--qp-line);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-}
-
-.kpi-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.kpi-chart {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
-
-.kpi-chart-bar {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-self: stretch;
-  width: 110px;
-  gap: 4px;
-}
-
-.bar-legend {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .card-panel {
   background: var(--qp-bg-soft);
   border: 1px solid var(--qp-line);

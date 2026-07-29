@@ -343,9 +343,10 @@ export class TradesPage {
         backdropClass: ['bg-black/40'],
         panelClass: ['p-0'],
         autoFocus: 'first-tabbable',
+        disableClose: true,
       },
     );
-    ref.closed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
+    ref.closed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (result) {
         this.selectedId.set(result.id);
       }

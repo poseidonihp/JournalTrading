@@ -12,6 +12,8 @@ import type {
   EquityCurve,
   EquityPoint,
   InsightsFilters,
+  InstrumentCategory,
+  KpiPoints,
   KpiSummary,
   YearlyMonth,
   YearlyReport,
@@ -26,6 +28,16 @@ interface TradeRow {
   durationSeconds: number;
   net: Prisma.Decimal;
   gross: Prisma.Decimal;
+  commission: Prisma.Decimal;
+  pointsTotal: Prisma.Decimal;
+  contracts: number;
+  pointValueSnapshot: Prisma.Decimal;
+  instrument: { category: InstrumentCategory };
+}
+
+interface PointsBucket {
+  gained: Prisma.Decimal;
+  lost: Prisma.Decimal;
   commission: Prisma.Decimal;
 }
 
@@ -401,7 +413,7 @@ export class InsightsService {
       };
     }
 
-    const rows = await this.prisma.trade.findMany({
+    return this.prisma.trade.findMany({
       where,
       select: {
         enteredAt: true,
@@ -409,10 +421,13 @@ export class InsightsService {
         net: true,
         gross: true,
         commission: true,
+        pointsTotal: true,
+        contracts: true,
+        pointValueSnapshot: true,
+        instrument: { select: { category: true } },
       },
       orderBy: { enteredAt: 'asc' },
     });
-    return rows;
   }
 
   private computeKpis(trades: TradeRow[]): KpiSummary {
@@ -437,6 +452,7 @@ export class InsightsService {
         worstDayNet: '0.00',
         consecutiveWins: 0,
         consecutiveLosses: 0,
+        pointsByCategory: [],
       };
     }
 
@@ -461,11 +477,15 @@ export class InsightsService {
       if (n.gt(0)) {
         wins += 1;
         winSum = winSum.plus(n);
-        if (n.gt(largestWin)) largestWin = n;
+        if (n.gt(largestWin)) {
+          largestWin = n;
+        }
       } else if (n.lt(0)) {
         losses += 1;
         lossSum = lossSum.plus(n);
-        if (n.lt(largestLoss)) largestLoss = n;
+        if (n.lt(largestLoss)) {
+          largestLoss = n;
+        }
       } else {
         breakEven += 1;
       }
@@ -536,7 +556,58 @@ export class InsightsService {
       worstDayNet: worstDay.toFixed(2),
       consecutiveWins: maxWinStreak,
       consecutiveLosses: maxLossStreak,
+      pointsByCategory: InsightsService.aggregatePoints(trades),
     };
+  }
+
+  /**
+   * Suma los puntos separados por categoría de instrumento, porque un futuro se
+   * mide en puntos y un CFD en pips. La comisión se convierte a puntos para poder
+   * dar un neto comparable con el P&L neto en USD.
+   */
+  private static aggregatePoints(trades: TradeRow[]): KpiPoints[] {
+    const buckets = new Map<InstrumentCategory, PointsBucket>();
+    for (const t of trades) {
+      const category = t.instrument.category;
+      const bucket = buckets.get(category) ?? { gained: ZERO, lost: ZERO, commission: ZERO };
+      const points = new Prisma.Decimal(t.pointsTotal);
+      if (points.gt(0)) {
+        bucket.gained = bucket.gained.plus(points);
+      }
+      if (points.lt(0)) {
+        bucket.lost = bucket.lost.plus(points);
+      }
+      bucket.commission = bucket.commission.plus(InsightsService.usdToPoints(t.commission, t));
+      buckets.set(category, bucket);
+    }
+
+    const categoryOrder: InstrumentCategory[] = ['FUTURE', 'CFD'];
+    const result: KpiPoints[] = [];
+    for (const category of categoryOrder) {
+      const bucket = buckets.get(category);
+      if (bucket) {
+        const gross = bucket.gained.plus(bucket.lost);
+        result.push({
+          category,
+          gained: bucket.gained.toFixed(2),
+          lost: bucket.lost.toFixed(2),
+          gross: gross.toFixed(2),
+          commission: bucket.commission.toFixed(2),
+          net: gross.minus(bucket.commission).toFixed(2),
+        });
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Convierte un importe en USD a puntos del instrumento del trade. `pointsTotal`
+   * es el movimiento por contrato, así que el divisor incluye los contratos.
+   */
+  private static usdToPoints(amount: Prisma.Decimal, trade: TradeRow): Prisma.Decimal {
+    const divisor = new Prisma.Decimal(trade.pointValueSnapshot).mul(trade.contracts);
+    if (divisor.isZero()) return ZERO;
+    return new Prisma.Decimal(amount).div(divisor);
   }
 
   private static aggregateWeeks(

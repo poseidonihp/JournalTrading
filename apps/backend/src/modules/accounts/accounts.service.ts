@@ -19,7 +19,7 @@ export class AccountsService {
       where: { userId },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
-    return Promise.all(rows.map((r) => this.toDto(r)));
+    return Promise.all(rows.map(r => this.toDto(r)));
   }
 
   async findById(userId: string, id: string): Promise<Account> {
@@ -45,7 +45,7 @@ export class AccountsService {
           ...feeConfig,
         },
       });
-      return this.toDto(row);
+      return this.findById(userId, row.id);
     } catch (e) {
       throw AccountsService.handleKnownErrors(e);
     }
@@ -58,7 +58,7 @@ export class AccountsService {
     }
     try {
       const feeUpdate = AccountsService.buildFeeUpdate(existing, dto);
-      const row = await this.prisma.account.update({
+      await this.prisma.account.update({
         where: { id },
         data: {
           name: dto.name,
@@ -69,7 +69,7 @@ export class AccountsService {
           ...feeUpdate,
         },
       });
-      return this.toDto(row);
+      return this.findById(userId, id);
     } catch (e) {
       throw AccountsService.handleKnownErrors(e);
     }
@@ -89,11 +89,6 @@ export class AccountsService {
     await this.prisma.account.delete({ where: { id } });
   }
 
-  // -------------------------------------------------------------------------
-  // Liquidación perezosa de fees por data en tiempo real.
-  // Se ejecuta al listar/leer cuentas: si nextChargeAt ya pasó, registra
-  // tantos cargos como periodos vencidos y avanza la fecha.
-  // -------------------------------------------------------------------------
 
   private async settlePendingFees(userId: string): Promise<void> {
     const due = await this.prisma.account.findMany({
@@ -125,41 +120,59 @@ export class AccountsService {
   }
 
   private async applyDueCharges(acc: PrismaAccount): Promise<void> {
-    if (!acc.dataFeeFrequency || !acc.dataFeeNextChargeAt) {
+    const frequency = acc.dataFeeFrequency;
+    if (!frequency || !acc.dataFeeNextChargeAt) {
       return;
     }
     const now = new Date();
+    const periods: Date[] = [];
     let nextAt = acc.dataFeeNextChargeAt;
-    let lastAt = acc.dataFeeLastChargedAt;
-    const charges: Prisma.DataFeeChargeCreateManyInput[] = [];
 
     while (nextAt.getTime() <= now.getTime()) {
-      charges.push({
-        accountId: acc.id,
-        amount: acc.dataFeeAmount,
-        frequency: acc.dataFeeFrequency,
-        periodStart: nextAt,
-        chargedAt: now,
-      });
-      lastAt = nextAt;
-      nextAt = AccountsService.advance(nextAt, acc.dataFeeFrequency);
+      periods.push(nextAt);
+      nextAt = AccountsService.nextPeriodStart(nextAt, frequency);
     }
 
-    if (charges.length === 0) {
+    const lastPeriod = periods.at(-1);
+    if (!lastPeriod) {
       return;
     }
-    await this.prisma.$transaction([
-      this.prisma.dataFeeCharge.createMany({ data: charges }),
-      this.prisma.account.update({
+    const pending = await this.uncharged(acc.id, periods);
+    const scheduleAt = nextAt;
+    await this.prisma.$transaction(async tx => {
+      if (pending.length > 0) {
+        await tx.dataFeeCharge.createMany({
+          data: pending.map(periodStart => ({
+            accountId: acc.id,
+            amount: acc.dataFeeAmount,
+            chargedAt: now,
+            frequency,
+            periodStart,
+          })),
+        });
+      }
+      await tx.account.update({
         where: { id: acc.id },
-        data: { dataFeeNextChargeAt: nextAt, dataFeeLastChargedAt: lastAt },
-      }),
-    ]);
+        data: { dataFeeNextChargeAt: scheduleAt, dataFeeLastChargedAt: lastPeriod },
+      });
+    });
   }
 
-  // -------------------------------------------------------------------------
-  // Helpers de configuración del fee.
-  // -------------------------------------------------------------------------
+  /**
+   * Filtra los periodos que todavía no tienen un cargo registrado en la cuenta.
+   * @param {string} accountId - Id de la cuenta
+   * @param {Date[]} periods - Inicios de periodo candidatos a cobro
+   * @returns {Promise<Date[]>}
+   */
+  private async uncharged(accountId: string, periods: Date[]): Promise<Date[]> {
+    const existing = await this.prisma.dataFeeCharge.findMany({
+      where: { accountId, periodStart: { in: periods } },
+      select: { periodStart: true },
+    });
+    const charged = new Set(existing.map(row => row.periodStart.getTime()));
+    return periods.filter(periodStart => !charged.has(periodStart.getTime()));
+  }
+
 
   private static buildFeeCreate(
     dto: CreateAccountDto,
@@ -177,7 +190,7 @@ export class AccountsService {
     }
     const nextAt = dto.dataFeeNextChargeAt
       ? new Date(dto.dataFeeNextChargeAt)
-      : AccountsService.firstOfNextMonth(new Date());
+      : AccountsService.nextPeriodStart(new Date(), dto.dataFeeFrequency);
     return {
       dataFeeEnabled: true,
       dataFeeAmount: dto.dataFeeAmount ?? '0',
@@ -209,21 +222,51 @@ export class AccountsService {
     if (dto.dataFeeAmount !== undefined) {
       update.dataFeeAmount = dto.dataFeeAmount;
     }
-    if (dto.dataFeeNextChargeAt !== undefined) {
-      update.dataFeeNextChargeAt = dto.dataFeeNextChargeAt
-        ? new Date(dto.dataFeeNextChargeAt)
-        : AccountsService.firstOfNextMonth(new Date());
-    } else if (!existing.dataFeeNextChargeAt) {
-      update.dataFeeNextChargeAt = AccountsService.firstOfNextMonth(new Date());
+    const nextChargeAt = AccountsService.resolveNextCharge(existing, frequency, dto);
+    if (nextChargeAt) {
+      update.dataFeeNextChargeAt = nextChargeAt;
     }
     return update;
   }
 
-  private static advance(from: Date, frequency: DataFeeFrequency): Date {
+  /**
+   * Resuelve la fecha del próximo cobro en un update. Devuelve null cuando la
+   * fecha vigente sigue siendo válida y no debe tocarse. Se recalcula si no
+   * había fecha, si el cliente envía null para reiniciar el calendario o si
+   * cambió la frecuencia (la fecha anterior ya no está alineada al periodo).
+   * @param {PrismaAccount} existing - Cuenta tal como está en base de datos
+   * @param {DataFeeFrequency} frequency - Frecuencia resultante tras el update
+   * @param {UpdateAccountDto} dto - Cambios solicitados
+   * @returns {Date | null}
+   */
+  private static resolveNextCharge(
+    existing: PrismaAccount,
+    frequency: DataFeeFrequency,
+    dto: UpdateAccountDto,
+  ): Date | null {
+    if (dto.dataFeeNextChargeAt) {
+      return new Date(dto.dataFeeNextChargeAt);
+    }
+    const reset = dto.dataFeeNextChargeAt === null || !existing.dataFeeNextChargeAt;
+    const frequencyChanged = existing.dataFeeFrequency !== frequency;
+    if (reset || frequencyChanged) {
+      return AccountsService.nextPeriodStart(new Date(), frequency);
+    }
+    return null;
+  }
+
+  /**
+   * Devuelve el inicio del periodo siguiente al que contiene `from`, alineado
+   * al calendario y siempre en el día 1 a las 00:00 UTC: mensual → 1 del mes
+   * siguiente; trimestral → 1 de ene/abr/jul/oct; anual → 1 de enero.
+   * @param {Date} from - Fecha de referencia
+   * @param {DataFeeFrequency} frequency - Frecuencia del fee
+   * @returns {Date}
+   */
+  private static nextPeriodStart(from: Date, frequency: DataFeeFrequency): Date {
     const months = AccountsService.monthsFor(frequency);
-    const next = new Date(from);
-    next.setUTCMonth(next.getUTCMonth() + months);
-    return next;
+    const currentPeriodMonth = Math.floor(from.getUTCMonth() / months) * months;
+    return new Date(Date.UTC(from.getUTCFullYear(), currentPeriodMonth + months, 1, 0, 0, 0, 0));
   }
 
   private static monthsFor(frequency: DataFeeFrequency): number {
@@ -234,10 +277,6 @@ export class AccountsService {
       return MONTHS_PER_QUARTER;
     }
     return MONTHS_PER_YEAR;
-  }
-
-  private static firstOfNextMonth(from: Date): Date {
-    return new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 1, 0, 0, 0, 0));
   }
 
   private static handleKnownErrors(e: unknown): Error {

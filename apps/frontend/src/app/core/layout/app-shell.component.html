@@ -16,8 +16,7 @@
     style="background: var(--qp-bg-soft); border-right: 1px solid var(--qp-line);"
     aria-label="Navegación principal"
   >
-    <div class="serif text-[26px] leading-none">Journal</div>
-    <div class="uplabel mt-1.5 mb-7">v0.4.0 · Fase 4</div>
+    <div class="serif mb-11 text-[26px] leading-none">Journal</div>
 
     <button
       type="button"
@@ -44,18 +43,18 @@
           (click)="closeSidebar()"
           class="nav-item"
         >
-          <span class="flex-1">{{ item.label }}</span>
-          @if (item.badge === 'NEW') {
-            <span class="badge-new">NEW</span>
-          } @else if (item.badge === 'BETA') {
-            <span class="badge-beta">BETA</span>
-          }
+          <span>{{ item.label }}</span>
         </a>
       }
     </nav>
 
     <div class="mt-5 flex items-center gap-2.5 border-t pt-5" style="border-color: var(--qp-line);">
-      <button type="button" [cdkMenuTriggerFor]="userMenu" class="avatar" aria-label="Usuario">
+      <button
+        type="button"
+        [cdkMenuTriggerFor]="userMenu"
+        class="avatar"
+        [attr.aria-label]="'Usuario ' + initial()"
+      >
         {{ initial() }}
       </button>
       <div class="flex flex-1 flex-col overflow-hidden">

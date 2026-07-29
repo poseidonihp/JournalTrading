@@ -28,11 +28,32 @@ const TIME_ONLY = new Intl.DateTimeFormat('es-CO', {
   timeZone: 'UTC',
 });
 
-export function formatUsd(value: string | number | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '—';
+type NumericInput = string | number | null | undefined;
+
+const secondsPerHour = 3600;
+const secondsPerMinute = 60;
+
+export function formatUsd(value: NumericInput): string {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
   const n = typeof value === 'string' ? Number(value) : value;
-  if (Number.isNaN(n)) return '—';
+  if (Number.isNaN(n)) {
+    return '—';
+  }
   return USD.format(n);
+}
+
+/** Puntos/pips con dos decimales y signo explícito cuando son positivos. */
+export function formatSignedPoints(value: NumericInput): string {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  const n = typeof value === 'string' ? Number(value) : value;
+  if (Number.isNaN(n)) {
+    return '—';
+  }
+  return n > 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
 }
 
 export function formatDateTime(iso: string): string {
@@ -53,17 +74,25 @@ export function formatMonth(iso: string): string {
 }
 
 export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '0s';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return '0s';
+  }
+  const h = Math.floor(seconds / secondsPerHour);
+  const m = Math.floor((seconds % secondsPerHour) / secondsPerMinute);
+  const s = seconds % secondsPerMinute;
+  if (h > 0) {
+    return `${h}h ${m}m`;
+  }
+  if (m > 0) {
+    return `${m}m ${s}s`;
+  }
   return `${s}s`;
 }
 
 export function pnlClass(value: string | number): string {
   const n = typeof value === 'string' ? Number(value) : value;
-  if (Number.isNaN(n) || n === 0) return 'text-fg-muted';
+  if (Number.isNaN(n) || n === 0) {
+    return 'text-fg-muted';
+  }
   return n > 0 ? 'text-success' : 'text-danger';
 }

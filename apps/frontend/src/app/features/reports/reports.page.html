@@ -16,16 +16,28 @@
   <section class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-3">
       <h2 class="text-lg font-semibold">Resumen del año</h2>
-      <select
-        class="qp-input text-sm"
-        [ngModel]="year()"
-        (ngModelChange)="onYearChange($event)"
-      >
-        @for (y of availableYears(); track y) {
-          <option [ngValue]="y">{{ y }}</option>
-        }
-      </select>
+      <label class="flex flex-col">
+        <span class="sr-only">Año</span>
+        <select
+          class="qp-input text-sm"
+          [ngModel]="year()"
+          (ngModelChange)="onYearChange($event)"
+        >
+          @for (y of availableYears(); track y) {
+            <option [ngValue]="y">{{ y }}</option>
+          }
+        </select>
+      </label>
     </div>
+
+    @if (yearKpisLoading() && !yearKpis()) {
+      <div class="qp-card p-12 text-center text-sm" style="color: var(--qp-mute-2);">
+        <lucide-icon [name]="iconLoader" class="inline-block animate-spin"></lucide-icon>
+        Cargando KPIs…
+      </div>
+    } @else if (yearKpis(); as k) {
+      <app-kpi-cards [kpis]="k" />
+    }
 
     @if (yearlyLoading()) {
       <div class="qp-card p-12 text-center text-sm" style="color: var(--qp-mute-2);">
@@ -195,21 +207,23 @@
     }
   </section>
 
-  <!-- =============================== DRAWDOWN =============================== -->
   <section class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-3">
       <h2 class="text-lg font-semibold">Drawdown</h2>
       <div class="flex items-center gap-2">
-        <select
-          class="qp-input text-sm"
-          [ngModel]="month()"
-          (ngModelChange)="onMonthChange($event)"
-        >
-          <option value="">Todo el histórico</option>
-          @for (m of availableMonths(); track m.value) {
-            <option [value]="m.value">{{ m.label }}</option>
-          }
-        </select>
+        <label class="flex flex-col">
+          <span class="sr-only">Mes</span>
+          <select
+            class="qp-input text-sm"
+            [ngModel]="month()"
+            (ngModelChange)="onMonthChange($event)"
+          >
+            <option value="">Todo el histórico</option>
+            @for (m of availableMonths(); track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </label>
         <div class="inline-flex rounded-md border" style="border-color: var(--qp-line-strong);">
           <button
             type="button"

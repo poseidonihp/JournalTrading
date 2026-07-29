@@ -47,4 +47,9 @@ export const enumLabels = {
     QUARTERLY: 'Trimestral',
     ANNUAL: 'Anual',
   },
+  /** Unidad en la que se miden los puntos según la categoría del instrumento. */
+  pointsUnit: {
+    FUTURE: 'pts',
+    CFD: 'pips',
+  },
 } as const;

@@ -36,6 +36,7 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
 
   const isAuthEndpoint =
     req.url.includes('/api/auth/login') ||
+    req.url.includes('/api/auth/me') ||
     req.url.includes('/api/auth/refresh') ||
     req.url.includes('/api/auth/logout');
 
@@ -64,7 +65,9 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
 };
 
 function handleSessionExpired(notify: NotificationService): void {
-  if (sessionExpiredHandled) return;
+  if (sessionExpiredHandled) {
+    return;
+  }
   sessionExpiredHandled = true;
   notify.warning('Tu sesión expiró. Vuelve a iniciar sesión.', { title: 'Sesión finalizada' });
   try {

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Tile crema con esquinas escalonadas (pixel-art, sin curvas) -->
+  <rect x="2" y="0" width="12" height="16" fill="#f5f1e8"/>
+  <rect x="0" y="2" width="16" height="12" fill="#f5f1e8"/>
+  <rect x="1" y="1" width="1" height="1" fill="#f5f1e8"/>
+  <rect x="14" y="1" width="1" height="1" fill="#f5f1e8"/>
+  <rect x="1" y="14" width="1" height="1" fill="#f5f1e8"/>
+  <rect x="14" y="14" width="1" height="1" fill="#f5f1e8"/>
+  <!-- Vela alcista: mecha superior, cuerpo, mecha inferior -->
+  <rect x="7" y="1" width="2" height="2" fill="#4a6b4f"/>
+  <rect x="4" y="3" width="8" height="10" fill="#4a6b4f"/>
+  <rect x="7" y="13" width="2" height="2" fill="#4a6b4f"/>
+</svg>

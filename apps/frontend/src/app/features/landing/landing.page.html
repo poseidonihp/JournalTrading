@@ -1,0 +1,101 @@
+<header class="landing-header" data-test="div-header-page">
+  <div class="serif text-[24px] leading-none">Journal</div>
+  <div class="flex items-center gap-3">
+    <button
+      type="button"
+      class="icon-btn"
+      (click)="theme.toggle()"
+      [attr.aria-label]="theme.isDark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+      data-test="action-theme-page"
+    >
+      <lucide-icon
+        [name]="theme.isDark() ? iconSun : iconMoon"
+        class="h-4 w-4"
+        aria-hidden="true"
+      />
+    </button>
+    <a routerLink="/login" class="pill pill-solid" data-test="action-login-page">Iniciar sesión</a>
+  </div>
+</header>
+
+<section class="hero" data-test="div-hero-page">
+  <div class="hero-glow" aria-hidden="true"></div>
+
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="uplabel rise rise-1">Diario de trading · Futuros</p>
+      <h1 class="serif hero-title rise rise-2">Journal</h1>
+      <p class="hero-lead rise rise-3">
+        Registra cada operación, mide lo que de verdad funciona y deja de repetir los mismos
+        errores. Tu proceso completo, sin hojas de cálculo.
+      </p>
+      <div class="hero-actions rise rise-4">
+        <a routerLink="/login" class="pill pill-solid" data-test="action-enter-page">
+          Iniciar sesión
+          <lucide-icon [name]="iconArrowRight" class="h-4 w-4" aria-hidden="true" />
+        </a>
+        <button
+          type="button"
+          class="pill"
+          (click)="scrollToFeatures()"
+          data-test="action-features-page"
+        >
+          Ver qué incluye
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-art rise rise-3" aria-hidden="true">
+      <svg class="curve" viewBox="0 0 420 240" focusable="false">
+        <defs>
+          <linearGradient id="landingCurveFill" x1="0" y1="0" x2="0" y2="1">
+            <stop class="curve-stop-top" offset="0%" />
+            <stop class="curve-stop-bottom" offset="100%" />
+          </linearGradient>
+        </defs>
+
+        <g class="curve-grid">
+          <line class="grid-1" x1="6" y1="46" x2="414" y2="46" />
+          <line class="grid-2" x1="6" y1="98" x2="414" y2="98" />
+          <line class="grid-3" x1="6" y1="150" x2="414" y2="150" />
+          <line class="grid-4" x1="6" y1="202" x2="414" y2="202" />
+        </g>
+
+        <path
+          class="curve-area"
+          d="M8 198 C 52 190, 84 154, 124 162 S 184 124, 214 132 S 268 82, 302 88 S 376 38, 412 32 L 412 214 L 8 214 Z"
+        />
+        <path
+          class="curve-line"
+          pathLength="1"
+          d="M8 198 C 52 190, 84 154, 124 162 S 184 124, 214 132 S 268 82, 302 88 S 376 38, 412 32"
+        />
+        <circle class="curve-dot" cx="412" cy="32" r="4.5" />
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section #featuresSection class="features" data-test="div-features-page">
+  <div class="features-inner">
+    <p class="uplabel reveal">Qué hay dentro</p>
+    <h2 class="serif features-title reveal">Todo tu proceso, en un solo sitio</h2>
+
+    <div class="features-grid">
+      @for (feature of features; track feature.title) {
+        <article class="feature-card reveal">
+          <span class="feature-icon">
+            <lucide-icon [name]="feature.icon" class="h-4 w-4" aria-hidden="true" />
+          </span>
+          <h3 class="feature-title">{{ feature.title }}</h3>
+          <p class="feature-desc">{{ feature.description }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<footer class="landing-footer">
+  <span class="uplabel">Journal</span>
+  <a routerLink="/login" class="uplabel footer-link">Iniciar sesión</a>
+</footer>

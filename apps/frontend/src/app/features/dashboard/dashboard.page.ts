@@ -6,11 +6,7 @@ import { InsightsStore } from './insights.store';
 import { CalendarHeatmapComponent } from './calendar-heatmap.component';
 import { DailyPnlChartsComponent } from './daily-pnl-charts.component';
 import { EquityCurveComponent } from './equity-curve.component';
-import {
-  MiniDivergeComponent,
-  MiniDonutComponent,
-  MiniGaugeComponent,
-} from './stats-charts.component';
+import { KpiCardsComponent } from './kpi-cards.component';
 import { formatUsd } from '../../shared/format';
 
 
@@ -35,9 +31,7 @@ function shiftMonth(month: string, delta: number): string {
     CalendarHeatmapComponent,
     DailyPnlChartsComponent,
     EquityCurveComponent,
-    MiniDonutComponent,
-    MiniDivergeComponent,
-    MiniGaugeComponent,
+    KpiCardsComponent,
   ],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
@@ -47,7 +41,6 @@ export class DashboardPage {
   protected readonly iconRight = ChevronRight;
   protected readonly iconLoader = Loader;
   protected readonly formatUsd = formatUsd;
-  protected readonly Number = Number;
 
   private readonly insights = inject(InsightsStore);
   private readonly accounts = inject(AccountsStore);
@@ -82,30 +75,6 @@ export class DashboardPage {
       year: 'numeric',
       timeZone: 'UTC',
     });
-  });
-
-  protected readonly profitFactorLabel = computed(() => {
-    const pf = this.kpis()?.profitFactor;
-    if (pf === null || pf === undefined) return '∞';
-    return pf.toFixed(2);
-  });
-
-  protected readonly winRateLabel = computed(() => {
-    const k = this.kpis();
-    if (!k) return '—';
-    return `${k.winRate.toFixed(1)}%`;
-  });
-
-  protected readonly avgDurationLabel = computed(() => {
-    const k = this.kpis();
-    if (!k || k.avgDurationSeconds === 0) return '—';
-    const m = Math.floor(k.avgDurationSeconds / 60);
-    const s = k.avgDurationSeconds % 60;
-    if (m >= 60) {
-      const h = Math.floor(m / 60);
-      return `${h}h ${m % 60}m`;
-    }
-    return m > 0 ? `${m}m ${s}s` : `${s}s`;
   });
 
   constructor() {

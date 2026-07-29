@@ -6,6 +6,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  * (`.field-input` / `.field-select` / `.field-textarea`), por lo que Reactive Forms sigue intacto.
  * Para ancho completo en grid pásale la clase en el host:
  * <journal-field class="md:col-span-2" label="Notas">…</journal-field>
+ * Pasa `controlId` con el mismo valor que el `id` del control proyectado para que el
+ * `<label>` quede asociado explícitamente vía `for` (necesario para el análisis de accesibilidad).
  */
 @Component({
   selector: 'journal-field',
@@ -13,7 +15,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { style: 'display: block' },
   template: `
-    <label class="field">
+    <label class="field" [attr.for]="controlId()">
       <span class="uplabel">{{ label() }}</span>
       <ng-content />
       @if (error(); as err) {
@@ -25,4 +27,5 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 export class FieldComponent {
   readonly label = input.required<string>();
   readonly error = input<string | null>(null);
+  readonly controlId = input<string>();
 }

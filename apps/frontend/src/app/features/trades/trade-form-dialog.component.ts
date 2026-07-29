@@ -44,6 +44,9 @@ export interface TradeFormDialogData {
   trade?: Trade;
 }
 
+/** Nombre de archivo con extensión: `captura.png`. Anclado al final y sin cuantificadores anidados. */
+const extensionPattern = /\.[a-z0-9]+$/i;
+
 interface PendingFile {
   file: File;
   previewUrl: string;
@@ -66,6 +69,7 @@ interface PendingFile {
   ],
   templateUrl: './trade-form-dialog.component.html',
   styleUrl: './trade-form-dialog.component.scss',
+  host: { '(document:paste)': 'onPaste($event)' },
 })
 export class TradeFormDialogComponent {
   protected readonly iconTrash = Trash2;
@@ -297,6 +301,24 @@ export class TradeFormDialogComponent {
     input.value = '';
   }
 
+  /**
+   * Añade como adjunto pendiente la imagen o el video que venga en el portapapeles
+   * (Ctrl+V), sirviendo tanto para un recorte de pantalla como para un archivo copiado.
+   * El pegado de texto se ignora para no interferir con los textareas del formulario.
+   */
+  onPaste(event: ClipboardEvent): void {
+    const clipboardFiles = Array.from(event.clipboardData?.items ?? [])
+      .filter(item => item.kind === 'file')
+      .map(item => item.getAsFile())
+      .filter((file): file is File => file !== null && TradeFormDialogComponent.isMedia(file))
+      .map(file => TradeFormDialogComponent.withUploadName(file));
+    if (clipboardFiles.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    this.addFiles(clipboardFiles);
+  }
+
   onDropFiles(_evt: unknown): void {
     // Reservado para reorden vía cdkDropList — sin reordenar por ahora.
   }
@@ -415,6 +437,24 @@ export class TradeFormDialogComponent {
       const v = dto[k];
       return v === null || v === undefined || v === '';
     });
+  }
+
+  private static isMedia(file: File): boolean {
+    return file.type.startsWith('image/') || file.type.startsWith('video/');
+  }
+
+  /**
+   * Los archivos del portapapeles pueden llegar sin nombre o sin extensión; el backend deriva
+   * la extensión del MIME solo si el nombre no la trae, y la necesita para servir el adjunto
+   * con el Content-Type correcto (helmet activa `nosniff`).
+   */
+  private static withUploadName(file: File): File {
+    if (extensionPattern.test(file.name)) {
+      return file;
+    }
+    const subtype = file.type.split('/')[1] ?? '';
+    const ext = subtype.split('+')[0]?.replace(/[^a-z0-9]/gi, '') ?? '';
+    return new File([file], ext ? `pegado.${ext}` : 'pegado', { type: file.type });
   }
 
   private static exitAfterEntryValidator(control: AbstractControl): ValidationErrors | null {

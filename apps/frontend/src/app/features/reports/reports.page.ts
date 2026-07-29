@@ -1,8 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Loader, TrendingDown } from 'lucide-angular';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { InsightsStore } from '../dashboard/insights.store';
+import { KpiCardsComponent } from '../dashboard/kpi-cards.component';
 import { ReportsStore } from './reports.store';
 import { UnderwaterChartComponent } from './underwater-chart.component';
 import { YearlyCurveComponent } from './yearly-curve.component';
@@ -24,11 +33,11 @@ function currentMonth(): string {
   selector: 'app-reports-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule, UnderwaterChartComponent, YearlyCurveComponent, MonthlyBarsComponent, TimePerfChartComponent],
+  imports: [FormsModule, LucideAngularModule, KpiCardsComponent, UnderwaterChartComponent, YearlyCurveComponent, MonthlyBarsComponent, TimePerfChartComponent],
   templateUrl: './reports.page.html',
   host: { class: 'block flex-1 min-h-0 overflow-y-auto' },
 })
-export class ReportsPage {
+export class ReportsPage implements OnInit {
   protected readonly iconLoader = Loader;
   protected readonly iconDown = TrendingDown;
   protected readonly formatUsd = formatUsd;
@@ -49,6 +58,8 @@ export class ReportsPage {
   protected readonly yearlyLoading = this.reports.yearlyLoading;
   protected readonly timePerf = this.reports.timePerf;
   protected readonly timePerfLoading = this.reports.timePerfLoading;
+  protected readonly yearKpis = this.reports.yearKpis;
+  protected readonly yearKpisLoading = this.reports.yearKpisLoading;
   protected readonly loading = this.reports.loading;
   protected readonly error = this.reports.error;
 
@@ -156,6 +167,13 @@ export class ReportsPage {
       this.accounts.selectedId();
       void this.reports.loadTimePerf(this.year());
     });
+    effect(() => {
+      this.accounts.selectedId();
+      void this.reports.loadYearKpis(this.year());
+    });
+  }
+
+  ngOnInit(): void {
     void this.bootstrap();
   }
 

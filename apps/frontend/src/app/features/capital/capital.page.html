@@ -94,10 +94,8 @@
               <label class="flex flex-col gap-1 text-sm">
                 <span class="uplabel">Monto</span>
                 <input
-                  type="number"
+                  type="text"
                   inputmode="decimal"
-                  min="0"
-                  step="0.01"
                   [ngModel]="draftFeeAmount()"
                   (ngModelChange)="draftFeeAmount.set($event)"
                   placeholder="16"
@@ -110,7 +108,7 @@
                 <select
                   name="draftFreq"
                   [ngModel]="draftFeeFrequency()"
-                  (ngModelChange)="draftFeeFrequency.set($event)"
+                  (ngModelChange)="setDraftFrequency($event)"
                   [ngModelOptions]="{ standalone: true }"
                   class="px-3 py-2 rounded border text-sm"
                   style="background: var(--qp-bg); border-color: var(--qp-line);"
@@ -120,9 +118,29 @@
                   }
                 </select>
               </label>
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="uplabel">Aplicar desde</span>
+                <select
+                  name="draftFeeStart"
+                  data-test="select-feestart-panel"
+                  [ngModel]="draftFeeStart()"
+                  (ngModelChange)="draftFeeStart.set($event)"
+                  [ngModelOptions]="{ standalone: true }"
+                  class="px-3 py-2 rounded border text-sm"
+                  style="background: var(--qp-bg); border-color: var(--qp-line);"
+                >
+                  <option value="">Solo desde el próximo periodo</option>
+                  @for (opt of draftStartOptions(); track opt.value) {
+                    <option [value]="opt.value">{{ opt.label }}</option>
+                  }
+                </select>
+              </label>
             </div>
             <p class="text-xs mt-2" style="color: var(--qp-mute-2);">
-              Se aplicará el primer día del próximo periodo y se descontará automáticamente del saldo.
+              Se descontará del saldo automáticamente el día 1 de cada periodo
+              (mensual: cada mes · trimestral: ene/abr/jul/oct · anual: 1 de enero).
+              Si eliges un periodo ya vencido en «Aplicar desde», se cobran de una vez
+              todos los periodos desde esa fecha.
             </p>
           }
         </div>
@@ -174,6 +192,7 @@
                         (ngModelChange)="editName.set($event)"
                         class="px-2 py-1 rounded border text-sm w-full"
                         style="background: var(--qp-bg); border-color: var(--qp-line);"
+                        aria-label="Cuenta"
                       />
                     </td>
                     <td class="py-2 pr-3">
@@ -183,6 +202,7 @@
                         (ngModelChange)="editBroker.set($event)"
                         class="px-2 py-1 rounded border text-sm w-full"
                         style="background: var(--qp-bg); border-color: var(--qp-line);"
+                        aria-label="Broker"
                       />
                     </td>
                     <td class="py-2 pr-3">
@@ -193,6 +213,7 @@
                         (ngModelChange)="editCurrency.set($event)"
                         class="px-2 py-1 rounded border text-sm w-16 uppercase"
                         style="background: var(--qp-bg); border-color: var(--qp-line);"
+                        aria-label="Moneda"
                       />
                     </td>
                     <td class="py-2 pr-3">
@@ -203,6 +224,7 @@
                         (ngModelChange)="editInitial.set($event)"
                         class="px-2 py-1 rounded border text-sm w-32 text-right"
                         style="background: var(--qp-bg); border-color: var(--qp-line);"
+                        aria-label="Capital inicial"
                       />
                     </td>
                     <td class="py-2 pr-3 text-right tabular-nums" style="color: var(--qp-mute-2);">
@@ -220,27 +242,47 @@
                       @if (editFeeEnabled()) {
                         <div class="flex flex-col gap-1 mt-1">
                           <input
-                            type="number"
+                            type="text"
                             inputmode="decimal"
-                            min="0"
-                            step="0.01"
                             [ngModel]="editFeeAmount()"
                             (ngModelChange)="editFeeAmount.set($event)"
                             class="px-2 py-1 rounded border text-xs w-24 text-right"
                             style="background: var(--qp-bg); border-color: var(--qp-line);"
+                            aria-label="Monto del fee"
                           />
-                          <select
-                            name="editFreq"
-                            [ngModel]="editFeeFrequency()"
-                            (ngModelChange)="editFeeFrequency.set($event)"
-                            [ngModelOptions]="{ standalone: true }"
-                            class="px-2 py-1 rounded border text-xs w-28"
-                            style="background: var(--qp-bg); border-color: var(--qp-line);"
-                          >
-                            @for (f of frequencies; track f) {
-                              <option [ngValue]="f">{{ freqLabel(f) }}</option>
-                            }
-                          </select>
+                          <label class="flex flex-col">
+                            <span class="sr-only">Frecuencia del fee</span>
+                            <select
+                              name="editFreq"
+                              [ngModel]="editFeeFrequency()"
+                              (ngModelChange)="setEditFrequency($event)"
+                              [ngModelOptions]="{ standalone: true }"
+                              class="px-2 py-1 rounded border text-xs w-28"
+                              style="background: var(--qp-bg); border-color: var(--qp-line);"
+                            >
+                              @for (f of frequencies; track f) {
+                                <option [ngValue]="f">{{ freqLabel(f) }}</option>
+                              }
+                            </select>
+                          </label>
+                          <label class="flex flex-col">
+                            <span class="sr-only">Aplicar el fee desde un periodo ya vencido</span>
+                            <select
+                              name="editFeeStart"
+                              data-test="select-feestart-editor"
+                              [ngModel]="editFeeStart()"
+                              (ngModelChange)="editFeeStart.set($event)"
+                              [ngModelOptions]="{ standalone: true }"
+                              title="Aplicar el fee desde un periodo ya vencido"
+                              class="px-2 py-1 rounded border text-xs w-28"
+                              style="background: var(--qp-bg); border-color: var(--qp-line);"
+                            >
+                              <option value="">Sin retroactivo</option>
+                              @for (opt of editStartOptions(); track opt.value) {
+                                <option [value]="opt.value">Desde {{ opt.label }}</option>
+                              }
+                            </select>
+                          </label>
                         </div>
                       }
                     </td>
@@ -272,7 +314,12 @@
                     <td class="py-2 pr-3 text-xs" style="color: var(--qp-mute-2);">
                       @if (a.dataFeeEnabled && a.dataFeeFrequency) {
                         {{ a.dataFeeAmount }} {{ a.currency }} · {{ freqLabel(a.dataFeeFrequency) }}
-                        <div class="opacity-70">Próximo: {{ formatNextCharge(a.dataFeeNextChargeAt) }}</div>
+                        <div class="opacity-70">Próximo: {{ formatChargeDate(a.dataFeeNextChargeAt) }}</div>
+                        @if (a.dataFeeLastChargedAt) {
+                          <div class="opacity-70">
+                            Último: {{ formatChargeDate(a.dataFeeLastChargedAt) }}
+                          </div>
+                        }
                       } @else {
                         —
                       }

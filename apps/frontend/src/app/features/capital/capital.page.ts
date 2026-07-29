@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Plus, Trash2, Edit2, Save, X } from 'lucide-angular';
 import {
@@ -17,6 +24,29 @@ const FREQ_LABELS: Record<DataFeeFrequency, string> = {
   ANNUAL: 'Anual',
 };
 
+const monthsPerPeriod: Record<DataFeeFrequency, number> = {
+  MONTHLY: 1,
+  QUARTERLY: 3,
+  ANNUAL: 12,
+};
+
+const pastPeriodsOffered: Record<DataFeeFrequency, number> = {
+  MONTHLY: 12,
+  QUARTERLY: 8,
+  ANNUAL: 5,
+};
+
+const periodFormatter = new Intl.DateTimeFormat('es', {
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+interface IFeeStartOption {
+  value: string;
+  label: string;
+}
+
 @Component({
   selector: 'app-capital-page',
   standalone: true,
@@ -25,7 +55,7 @@ const FREQ_LABELS: Record<DataFeeFrequency, string> = {
   templateUrl: './capital.page.html',
   styleUrl: './capital.page.scss',
 })
-export class CapitalPage {
+export class CapitalPage implements OnInit {
   protected readonly iconPlus = Plus;
   protected readonly iconTrash = Trash2;
   protected readonly iconEdit = Edit2;
@@ -57,6 +87,7 @@ export class CapitalPage {
   protected readonly draftFeeEnabled = signal(false);
   protected readonly draftFeeAmount = signal('0');
   protected readonly draftFeeFrequency = signal<DataFeeFrequency>('MONTHLY');
+  protected readonly draftFeeStart = signal('');
 
   protected readonly editingId = signal<string | null>(null);
   protected readonly editName = signal('');
@@ -67,10 +98,16 @@ export class CapitalPage {
   protected readonly editFeeEnabled = signal(false);
   protected readonly editFeeAmount = signal('0');
   protected readonly editFeeFrequency = signal<DataFeeFrequency>('MONTHLY');
+  protected readonly editFeeStart = signal('');
+
+  protected readonly draftStartOptions = computed(() =>
+    this._startOptions(this.draftFeeFrequency()),
+  );
+  protected readonly editStartOptions = computed(() => this._startOptions(this.editFeeFrequency()));
 
   protected readonly error = signal<string | null>(null);
 
-  constructor() {
+  ngOnInit(): void {
     void this.accounts.load();
   }
 
@@ -84,7 +121,66 @@ export class CapitalPage {
     this.draftFeeEnabled.set(false);
     this.draftFeeAmount.set('0');
     this.draftFeeFrequency.set('MONTHLY');
+    this.draftFeeStart.set('');
     this.creating.set(true);
+  }
+
+  /**
+   * Cambia la frecuencia del fee en el formulario de creación y descarta el
+   * periodo retroactivo elegido, porque las opciones dependen de la frecuencia.
+   * @param {DataFeeFrequency} frequency - Frecuencia seleccionada
+   * @returns {void}
+   */
+  protected setDraftFrequency(frequency: DataFeeFrequency): void {
+    this.draftFeeFrequency.set(frequency);
+    this.draftFeeStart.set('');
+  }
+
+  /**
+   * Cambia la frecuencia del fee en la fila en edición y descarta el periodo
+   * retroactivo elegido.
+   * @param {DataFeeFrequency} frequency - Frecuencia seleccionada
+   * @returns {void}
+   */
+  protected setEditFrequency(frequency: DataFeeFrequency): void {
+    this.editFeeFrequency.set(frequency);
+    this.editFeeStart.set('');
+  }
+
+  /**
+   * Construye las opciones de "aplicar desde": el periodo en curso y los
+   * anteriores según la frecuencia. El valor es el inicio del periodo en ISO,
+   * que el backend usa como primer cobro y liquida de una vez si ya venció.
+   * @private
+   * @param {DataFeeFrequency} frequency - Frecuencia del fee
+   * @returns {IFeeStartOption[]}
+   */
+  private _startOptions(frequency: DataFeeFrequency): IFeeStartOption[] {
+    const months = monthsPerPeriod[frequency];
+    const now = new Date();
+    const currentPeriodMonth = Math.floor(now.getUTCMonth() / months) * months;
+    const options: IFeeStartOption[] = [];
+    for (let index = 0; index < pastPeriodsOffered[frequency]; index++) {
+      const start = new Date(
+        Date.UTC(now.getUTCFullYear(), currentPeriodMonth - index * months, 1),
+      );
+      options.push({ value: start.toISOString(), label: this._periodLabel(start, frequency) });
+    }
+    return options;
+  }
+
+  /**
+   * Etiqueta legible del periodo que arranca en la fecha indicada.
+   * @private
+   * @param {Date} start - Inicio del periodo (UTC)
+   * @param {DataFeeFrequency} frequency - Frecuencia del fee
+   * @returns {string}
+   */
+  private _periodLabel(start: Date, frequency: DataFeeFrequency): string {
+    if (frequency === 'ANNUAL') {
+      return String(start.getUTCFullYear());
+    }
+    return periodFormatter.format(start);
   }
 
   protected cancelCreate(): void {
@@ -99,6 +195,7 @@ export class CapitalPage {
     }
     try {
       const feeEnabled = this.draftFeeEnabled();
+      const feeStart = this.draftFeeStart();
       await this.accounts.create({
         name,
         broker: this.draftBroker().trim() || null,
@@ -108,6 +205,7 @@ export class CapitalPage {
         dataFeeEnabled: feeEnabled,
         dataFeeAmount: feeEnabled ? this.draftFeeAmount().trim() || '0' : '0',
         dataFeeFrequency: feeEnabled ? this.draftFeeFrequency() : null,
+        dataFeeNextChargeAt: feeEnabled && feeStart ? feeStart : undefined,
       });
       this.creating.set(false);
     } catch (e) {
@@ -125,6 +223,7 @@ export class CapitalPage {
     this.editFeeEnabled.set(a.dataFeeEnabled);
     this.editFeeAmount.set(a.dataFeeAmount);
     this.editFeeFrequency.set(a.dataFeeFrequency ?? 'MONTHLY');
+    this.editFeeStart.set('');
     this.error.set(null);
   }
 
@@ -140,6 +239,7 @@ export class CapitalPage {
     }
     try {
       const feeEnabled = this.editFeeEnabled();
+      const feeStart = this.editFeeStart();
       await this.accounts.update(a.id, {
         name,
         broker: this.editBroker().trim() || null,
@@ -149,6 +249,7 @@ export class CapitalPage {
         dataFeeEnabled: feeEnabled,
         dataFeeAmount: feeEnabled ? this.editFeeAmount().trim() || '0' : '0',
         dataFeeFrequency: feeEnabled ? this.editFeeFrequency() : null,
+        dataFeeNextChargeAt: feeEnabled && feeStart ? feeStart : undefined,
       });
       this.editingId.set(null);
     } catch (e) {
@@ -173,11 +274,16 @@ export class CapitalPage {
     }
   }
 
-  protected formatNextCharge(iso: string | null): string {
+  protected formatChargeDate(iso: string | null): string {
     if (!iso) {
       return '—';
     }
     const d = new Date(iso);
-    return d.toLocaleDateString('es', { year: 'numeric', month: 'short', day: '2-digit' });
+    return d.toLocaleDateString('es', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      timeZone: 'UTC',
+    });
   }
 }

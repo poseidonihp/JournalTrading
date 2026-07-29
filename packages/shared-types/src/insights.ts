@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   EmotionEnum,
   ExitReasonEnum,
+  InstrumentCategoryEnum,
   TradeDirectionEnum,
 } from './enums';
 
@@ -26,9 +27,25 @@ export const InsightsFiltersSchema = z.object({
 });
 export type InsightsFilters = z.infer<typeof InsightsFiltersSchema>;
 
-// ---------------------------------------------------------------------------
-// KPIs
-// ---------------------------------------------------------------------------
+
+/**
+ * Puntos agregados por categoría de instrumento. La unidad es implícita:
+ * FUTURE se mide en puntos y CFD en pips (ver `enumLabels.pointsUnit`).
+ */
+export const KpiPointsSchema = z.object({
+  category: InstrumentCategoryEnum,
+  /** Suma de los puntos de los trades ganadores (≥ 0). */
+  gained: z.string(),
+  /** Suma de los puntos de los trades perdedores (≤ 0). */
+  lost: z.string(),
+  /** gained + lost, es decir el movimiento de precio sin descontar comisiones. */
+  gross: z.string(),
+  /** Comisiones convertidas a puntos del instrumento (≥ 0). */
+  commission: z.string(),
+  /** gross − commission: el resultado en puntos equivalente al P&L neto. */
+  net: z.string(),
+});
+export type KpiPoints = z.infer<typeof KpiPointsSchema>;
 
 export const KpiSummarySchema = z.object({
   totalTrades: z.number().int().nonnegative(),
@@ -50,6 +67,8 @@ export const KpiSummarySchema = z.object({
   worstDayNet: z.string(),
   consecutiveWins: z.number().int().nonnegative(),
   consecutiveLosses: z.number().int().nonnegative(),
+  /** Sólo trae las categorías con trades en el rango filtrado. */
+  pointsByCategory: z.array(KpiPointsSchema),
 });
 export type KpiSummary = z.infer<typeof KpiSummarySchema>;
 

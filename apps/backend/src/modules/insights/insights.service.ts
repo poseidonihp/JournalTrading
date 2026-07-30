@@ -41,6 +41,12 @@ interface PointsBucket {
   commission: Prisma.Decimal;
 }
 
+/** Cargo del fee de data: `amount` es un costo positivo imputado a `periodStart`. */
+interface FeeRow {
+  periodStart: Date;
+  amount: Prisma.Decimal;
+}
+
 const ZERO = new Prisma.Decimal(0);
 const ONE_HUNDRED = 100;
 const DAYS_PER_WEEK = 7;
@@ -51,8 +57,11 @@ export class InsightsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async kpis(userId: string, filters: InsightsFilters): Promise<KpiSummary> {
-    const trades = await this.loadTrades(userId, filters);
-    return this.computeKpis(trades);
+    const [trades, fees] = await Promise.all([
+      this.loadTrades(userId, filters),
+      this.loadFees(userId, filters),
+    ]);
+    return this.computeKpis(trades, fees);
   }
 
   async equity(userId: string, filters: InsightsFilters): Promise<EquityCurve> {
@@ -71,16 +80,25 @@ export class InsightsService {
   }
 
   async drawdown(userId: string, filters: InsightsFilters): Promise<DrawdownReport> {
-    const trades = await this.loadTrades(userId, filters);
+    const [trades, fees] = await Promise.all([
+      this.loadTrades(userId, filters),
+      this.loadFees(userId, filters),
+    ]);
     trades.sort((a, b) => a.enteredAt.getTime() - b.enteredAt.getTime());
 
-    const tradePoints = trades.map((t) => ({ at: t.enteredAt.toISOString(), net: t.net }));
+    const tradePoints = trades.map(trade => ({ at: trade.enteredAt.toISOString(), net: trade.net }));
+    for (const fee of fees) {
+      tradePoints.push({ at: fee.periodStart.toISOString(), net: fee.amount.negated() });
+    }
+    tradePoints.sort((a, b) => a.at.localeCompare(b.at));
+
     const dayBuckets = new Map<string, Prisma.Decimal>();
     for (const t of trades) {
       const key = InsightsService.dateKey(t.enteredAt);
       const curr = dayBuckets.get(key) ?? ZERO;
       dayBuckets.set(key, curr.plus(t.net));
     }
+    InsightsService.subtractFeesFromDays(dayBuckets, fees);
     const dayPoints = Array.from(dayBuckets.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([at, net]) => ({ at, net }));
@@ -101,16 +119,19 @@ export class InsightsService {
     };
     if (accountId) where.accountId = accountId;
 
-    const rows = await this.prisma.trade.findMany({
-      where,
-      select: {
-        enteredAt: true,
-        net: true,
-        gross: true,
-        pointsTotal: true,
-      },
-      orderBy: { enteredAt: 'asc' },
-    });
+    const [rows, fees] = await Promise.all([
+      this.prisma.trade.findMany({
+        where,
+        select: {
+          enteredAt: true,
+          net: true,
+          gross: true,
+          pointsTotal: true,
+        },
+        orderBy: { enteredAt: 'asc' },
+      }),
+      this.feesInRange(userId, accountId, start, end),
+    ]);
 
     type Bucket = {
       trades: number;
@@ -119,6 +140,7 @@ export class InsightsService {
       points: Prisma.Decimal;
       gross: Prisma.Decimal;
       net: Prisma.Decimal;
+      fees: Prisma.Decimal;
       winSum: Prisma.Decimal;
       lossSum: Prisma.Decimal;
     };
@@ -129,9 +151,17 @@ export class InsightsService {
       points: ZERO,
       gross: ZERO,
       net: ZERO,
+      fees: ZERO,
       winSum: ZERO,
       lossSum: ZERO,
     }));
+
+    for (const fee of fees) {
+      const bucket = buckets[fee.periodStart.getUTCMonth()];
+      if (bucket) {
+        bucket.fees = bucket.fees.plus(fee.amount);
+      }
+    }
 
     for (const r of rows) {
       const idx = r.enteredAt.getUTCMonth();
@@ -153,7 +183,8 @@ export class InsightsService {
 
     let cum = ZERO;
     const months: YearlyMonth[] = buckets.map((b, i) => {
-      cum = cum.plus(b.net);
+      const monthNet = b.net.minus(b.fees);
+      cum = cum.plus(monthNet);
       const decided = b.wins + b.losses;
       const winRate = decided > 0 ? Number(((b.wins / decided) * ONE_HUNDRED).toFixed(2)) : 0;
       const lossAbs = b.lossSum.abs();
@@ -169,7 +200,8 @@ export class InsightsService {
         losses: b.losses,
         points: b.points.toFixed(2),
         gross: b.gross.toFixed(2),
-        net: b.net.toFixed(2),
+        net: monthNet.toFixed(2),
+        fees: b.fees.toFixed(2),
         cumulativeNet: cum.toFixed(2),
         winRate,
         profitFactor,
@@ -188,6 +220,7 @@ export class InsightsService {
       points: Prisma.Decimal;
       gross: Prisma.Decimal;
       net: Prisma.Decimal;
+      fees: Prisma.Decimal;
       winSum: Prisma.Decimal;
       lossSum: Prisma.Decimal;
     }>,
@@ -198,6 +231,7 @@ export class InsightsService {
     let points = ZERO;
     let gross = ZERO;
     let net = ZERO;
+    let fees = ZERO;
     let winSum = ZERO;
     let lossSum = ZERO;
     for (const b of buckets) {
@@ -207,6 +241,7 @@ export class InsightsService {
       points = points.plus(b.points);
       gross = gross.plus(b.gross);
       net = net.plus(b.net);
+      fees = fees.plus(b.fees);
       winSum = winSum.plus(b.winSum);
       lossSum = lossSum.plus(b.lossSum);
     }
@@ -224,7 +259,8 @@ export class InsightsService {
       losses,
       points: points.toFixed(2),
       gross: gross.toFixed(2),
-      net: net.toFixed(2),
+      net: net.minus(fees).toFixed(2),
+      fees: fees.toFixed(2),
       winRate,
       profitFactor,
     };
@@ -343,31 +379,29 @@ export class InsightsService {
     };
     if (query.accountId) where.accountId = query.accountId;
 
-    const trades = await this.prisma.trade.findMany({
-      where,
-      select: { enteredAt: true, net: true },
-      orderBy: { enteredAt: 'asc' },
-    });
+    const [trades, fees] = await Promise.all([
+      this.prisma.trade.findMany({
+        where,
+        select: { enteredAt: true, net: true },
+        orderBy: { enteredAt: 'asc' },
+      }),
+      this.feesInRange(userId, query.accountId, start, end),
+    ]);
+    const feesByDay = InsightsService.feesByDay(fees);
 
-    const dayBuckets = new Map<string, { net: Prisma.Decimal; total: number; wins: number }>();
-    for (const t of trades) {
-      const key = InsightsService.dateKey(t.enteredAt);
-      const bucket = dayBuckets.get(key) ?? { net: ZERO, total: 0, wins: 0 };
-      bucket.net = bucket.net.plus(t.net);
-      bucket.total += 1;
-      if (new Prisma.Decimal(t.net).gt(0)) bucket.wins += 1;
-      dayBuckets.set(key, bucket);
-    }
+    const dayBuckets = InsightsService.groupTradesByDay(trades);
 
     const days: CalendarDay[] = [];
     const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
     for (let d = 1; d <= lastDay; d++) {
       const date = `${yStr}-${mStr}-${String(d).padStart(2, '0')}`;
       const b = dayBuckets.get(date);
+      const dayFees = feesByDay.get(date) ?? ZERO;
       days.push({
         date,
-        net: (b?.net ?? ZERO).toFixed(2),
+        net: (b?.net ?? ZERO).minus(dayFees).toFixed(2),
         tradesCount: b?.total ?? 0,
+        fees: dayFees.toFixed(2),
         winRate: b && b.total > 0 ? (b.wins / b.total) * ONE_HUNDRED : 0,
       });
     }
@@ -398,19 +432,9 @@ export class InsightsService {
     if (filters.direction) where.direction = filters.direction;
     if (filters.exitReason) where.exitReason = filters.exitReason;
 
-    if (filters.month) {
-      const [yStr, mStr] = filters.month.split('-');
-      const y = Number(yStr);
-      const m = Number(mStr);
-      where.enteredAt = {
-        gte: new Date(Date.UTC(y, m - 1, 1)),
-        lt: new Date(Date.UTC(y, m, 1)),
-      };
-    } else if (filters.from || filters.to) {
-      where.enteredAt = {
-        ...(filters.from ? { gte: new Date(filters.from) } : {}),
-        ...(filters.to ? { lte: new Date(filters.to) } : {}),
-      };
+    const range = InsightsService.dateRange(filters);
+    if (range) {
+      where.enteredAt = range;
     }
 
     return this.prisma.trade.findMany({
@@ -430,8 +454,149 @@ export class InsightsService {
     });
   }
 
-  private computeKpis(trades: TradeRow[]): KpiSummary {
-    if (trades.length === 0) {
+  /**
+   * Rango temporal de la consulta, compartido por trades (`enteredAt`) y fees
+   * (`periodStart`). `month` gana sobre `from`/`to` igual que en los filtros.
+   * @param {InsightsFilters} filters - Filtros de la consulta
+   * @returns {Prisma.DateTimeFilter | undefined} undefined si no hay rango
+   */
+  private static dateRange(filters: InsightsFilters): Prisma.DateTimeFilter | undefined {
+    if (filters.month) {
+      const [yStr, mStr] = filters.month.split('-');
+      const y = Number(yStr);
+      const m = Number(mStr);
+      return { gte: new Date(Date.UTC(y, m - 1, 1)), lt: new Date(Date.UTC(y, m, 1)) };
+    }
+    if (filters.from || filters.to) {
+      return {
+        ...(filters.from ? { gte: new Date(filters.from) } : {}),
+        ...(filters.to ? { lte: new Date(filters.to) } : {}),
+      };
+    }
+    return undefined;
+  }
+
+  /**
+   * El fee de data se cobra por cuenta y periodo, no por operación: no se puede
+   * imputar a un instrumento, tipo de trade, emoción, dirección ni salida. Por
+   * eso, si la consulta filtra por cualquiera de esos atributos, se omite.
+   * @param {InsightsFilters} filters - Filtros de la consulta
+   * @returns {boolean}
+   */
+  private static feesApply(filters: InsightsFilters): boolean {
+    return (
+      !filters.instrumentId &&
+      !filters.tradeTypeId &&
+      !filters.emotion &&
+      !filters.direction &&
+      !filters.exitReason
+    );
+  }
+
+  /**
+   * Carga los cargos del fee de data que caen dentro del rango filtrado.
+   * @param {string} userId - Dueño de las cuentas
+   * @param {InsightsFilters} filters - Filtros de la consulta
+   * @returns {Promise<FeeRow[]>} Vacío si el filtro es de nivel trade
+   */
+  private async loadFees(userId: string, filters: InsightsFilters): Promise<FeeRow[]> {
+    if (!InsightsService.feesApply(filters)) {
+      return [];
+    }
+    const where: Prisma.DataFeeChargeWhereInput = {
+      account: { userId, ...(filters.accountId ? { id: filters.accountId } : {}) },
+    };
+    const range = InsightsService.dateRange(filters);
+    if (range) {
+      where.periodStart = range;
+    }
+
+    return this.prisma.dataFeeCharge.findMany({
+      where,
+      select: { periodStart: true, amount: true },
+      orderBy: { periodStart: 'asc' },
+    });
+  }
+
+  /**
+   * Cargos del fee de data en un rango explícito, para los reportes que no usan
+   * `InsightsFilters` (anual y calendario).
+   * @param {string} userId - Dueño de las cuentas
+   * @param {string} [accountId] - Cuenta a filtrar; sin valor, todas
+   * @param {Date} gte - Inicio del rango (inclusive)
+   * @param {Date} lt - Fin del rango (exclusive)
+   * @returns {Promise<FeeRow[]>}
+   */
+  private async feesInRange(
+    userId: string,
+    accountId: string | undefined,
+    gte: Date,
+    lt: Date,
+  ): Promise<FeeRow[]> {
+    return this.prisma.dataFeeCharge.findMany({
+      where: {
+        account: { userId, ...(accountId ? { id: accountId } : {}) },
+        periodStart: { gte, lt },
+      },
+      select: { periodStart: true, amount: true },
+      orderBy: { periodStart: 'asc' },
+    });
+  }
+
+  private static sumFees(fees: FeeRow[]): Prisma.Decimal {
+    return fees.reduce((acc, fee) => acc.plus(fee.amount), ZERO);
+  }
+
+  /** Agrupa los fees por día UTC del inicio de su periodo. */
+  private static feesByDay(fees: FeeRow[]): Map<string, Prisma.Decimal> {
+    const byDay = new Map<string, Prisma.Decimal>();
+    for (const fee of fees) {
+      const key = InsightsService.dateKey(fee.periodStart);
+      byDay.set(key, (byDay.get(key) ?? ZERO).plus(fee.amount));
+    }
+    return byDay;
+  }
+
+  /**
+   * Resta los fees del neto del día en que caen, creando el día si no tenía
+   * trades (un mes sin operar igual paga el fee).
+   * @param {Map<string, Prisma.Decimal>} dayBuckets - Netos por día, mutado
+   * @param {FeeRow[]} fees - Cargos del fee de data
+   * @returns {void}
+   */
+  private static subtractFeesFromDays(
+    dayBuckets: Map<string, Prisma.Decimal>,
+    fees: FeeRow[],
+  ): void {
+    for (const [key, amount] of InsightsService.feesByDay(fees)) {
+      dayBuckets.set(key, (dayBuckets.get(key) ?? ZERO).minus(amount));
+    }
+  }
+
+  /**
+   * Agrupa los trades por día UTC con su neto, total y ganadores.
+   * @param {ReadonlyArray<{ enteredAt: Date; net: Prisma.Decimal }>} trades - Trades a agrupar
+   * @returns {Map<string, { net: Prisma.Decimal; total: number; wins: number }>}
+   */
+  private static groupTradesByDay(
+    trades: ReadonlyArray<{ enteredAt: Date; net: Prisma.Decimal }>,
+  ): Map<string, { net: Prisma.Decimal; total: number; wins: number }> {
+    const dayBuckets = new Map<string, { net: Prisma.Decimal; total: number; wins: number }>();
+    for (const t of trades) {
+      const key = InsightsService.dateKey(t.enteredAt);
+      const bucket = dayBuckets.get(key) ?? { net: ZERO, total: 0, wins: 0 };
+      bucket.net = bucket.net.plus(t.net);
+      bucket.total += 1;
+      if (new Prisma.Decimal(t.net).gt(0)) {
+        bucket.wins += 1;
+      }
+      dayBuckets.set(key, bucket);
+    }
+    return dayBuckets;
+  }
+
+  private computeKpis(trades: TradeRow[], fees: FeeRow[]): KpiSummary {
+    if (trades.length === 0 && fees.length === 0) {
       return {
         totalTrades: 0,
         winningTrades: 0,
@@ -440,6 +605,7 @@ export class InsightsService {
         netPnl: '0.00',
         grossPnl: '0.00',
         totalCommission: '0.00',
+        dataFees: '0.00',
         winRate: 0,
         profitFactor: null,
         expectancy: '0.00',
@@ -501,7 +667,8 @@ export class InsightsService {
       : Number(winSum.div(lossAbs).toFixed(4));
     const avgWin = wins > 0 ? winSum.div(wins) : ZERO;
     const avgLoss = losses > 0 ? lossSum.div(losses) : ZERO;
-    const expectancy = net.div(trades.length);
+    const expectancy = trades.length > 0 ? net.div(trades.length) : ZERO;
+    const dataFees = InsightsService.sumFees(fees);
 
     const dayBuckets = new Map<string, Prisma.Decimal>();
     for (const t of trades) {
@@ -509,6 +676,7 @@ export class InsightsService {
       const curr = dayBuckets.get(key) ?? ZERO;
       dayBuckets.set(key, curr.plus(t.net));
     }
+    InsightsService.subtractFeesFromDays(dayBuckets, fees);
     let bestDay = ZERO;
     let worstDay = ZERO;
     for (const v of dayBuckets.values()) {
@@ -541,9 +709,10 @@ export class InsightsService {
       winningTrades: wins,
       losingTrades: losses,
       breakEvenTrades: breakEven,
-      netPnl: net.toFixed(2),
+      netPnl: net.minus(dataFees).toFixed(2),
       grossPnl: gross.toFixed(2),
       totalCommission: commission.toFixed(2),
+      dataFees: dataFees.toFixed(2),
       winRate: Number(winRate.toFixed(2)),
       profitFactor,
       expectancy: expectancy.toFixed(2),
@@ -551,7 +720,7 @@ export class InsightsService {
       avgLoss: avgLoss.toFixed(2),
       largestWin: largestWin.toFixed(2),
       largestLoss: largestLoss.toFixed(2),
-      avgDurationSeconds: Math.floor(durationSum / trades.length),
+      avgDurationSeconds: trades.length > 0 ? Math.floor(durationSum / trades.length) : 0,
       bestDayNet: bestDay.toFixed(2),
       worstDayNet: worstDay.toFixed(2),
       consecutiveWins: maxWinStreak,

@@ -64,7 +64,7 @@ function nextId(): string {
         Sin datos para el rango seleccionado.
       </div>
     } @else {
-      <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet" class="w-full h-[300px]">
+      <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet" class="w-full h-auto">
         <defs>
           <linearGradient
             [attr.id]="'uw-grad-' + model().clipId"

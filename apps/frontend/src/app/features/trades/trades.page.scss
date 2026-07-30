@@ -8,6 +8,21 @@
   --qp-line-row: rgba(245, 241, 232, 0.06);
 }
 
+.title-note {
+  font-family: 'Geist', sans-serif;
+  font-style: normal;
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--qp-mute-2);
+}
+.dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--qp-mute-2);
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
@@ -32,12 +47,44 @@
   line-height: 1;
   font-feature-settings: 'tnum';
 }
+.kpi-unit {
+  font-family: 'Geist', sans-serif;
+  font-style: normal;
+  font-size: 18px;
+  margin-left: 2px;
+  color: var(--qp-mute-2);
+}
+.kpi-note {
+  font-size: 11px;
+  color: var(--qp-mute);
+}
+
+.spark-area {
+  fill: currentColor;
+  opacity: 0.1;
+}
+.spark-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
 
 .emo {
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 4px;
   font-weight: 500;
+}
+.emo-confident {
+  background: #e8dfd0;
+  color: #6b5638;
+}
+.emo-mistake,
+.emo-param-error,
+.emo-emotional-error {
+  background: #eae3d2;
+  color: #5b5249;
 }
 .setup-tag {
   font-size: 11px;
@@ -59,6 +106,18 @@
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
+}
+.dir-chip.long {
+  color: var(--qp-sage);
+}
+.dir-chip.short {
+  color: var(--qp-clay);
+}
+.dir-chip.long .dir-triangle {
+  border-bottom: 5px solid var(--qp-sage);
+}
+.dir-chip.short .dir-triangle {
+  border-top: 5px solid var(--qp-clay);
 }
 
 .row {
@@ -104,6 +163,13 @@
 .ta-right {
   text-align: right;
 }
+.dia-cell {
+  color: var(--qp-mute-2);
+  font-weight: 400;
+}
+.puntos-cell {
+  font-weight: 500;
+}
 .neto-cell {
   font-family: 'Instrument Serif', Georgia, serif;
   font-style: italic;
@@ -143,4 +209,22 @@
 }
 [data-density='roomy'] .neto-cell {
   font-size: 19px;
+}
+
+.error-banner {
+  border-color: var(--qp-clay);
+  background: rgba(181, 80, 60, 0.08);
+  color: var(--qp-clay);
+}
+
+/* Modificadores de color. Van al final para ganar por orden de cascada sobre
+   reglas de la misma especificidad (p. ej. `.kpi-note`). */
+.muted {
+  color: var(--qp-mute);
+}
+.positive {
+  color: var(--qp-sage);
+}
+.negative {
+  color: var(--qp-clay);
 }

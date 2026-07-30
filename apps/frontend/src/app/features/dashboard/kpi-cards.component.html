@@ -10,7 +10,7 @@
       >
         {{ formatUsd(k.netPnl) }}
       </div>
-      @if (k.pointsByCategory.length > 0) {
+      @if (k.pointsByCategory.length > 0 || Number(k.dataFees) > 0) {
         <div class="kpi-points">
           @for (p of k.pointsByCategory; track p.category) {
             <span class="points-chip" [title]="pointsTooltip(p)">
@@ -18,6 +18,12 @@
                 {{ formatSignedPoints(p.net) }}
               </span>
               <span class="unit">{{ pointsUnit(p.category) }} netos</span>
+            </span>
+          }
+          @if (Number(k.dataFees) > 0) {
+            <span class="points-chip" title="Fee de data del periodo, ya descontado del neto">
+              <span style="color: var(--qp-clay)">-{{ formatUsd(k.dataFees) }}</span>
+              <span class="unit">fee data</span>
             </span>
           }
         </div>

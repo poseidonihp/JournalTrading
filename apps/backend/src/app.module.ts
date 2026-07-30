@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
+import { CapitalMovementsModule } from './modules/capital-movements/capital-movements.module';
 import { InstrumentsModule } from './modules/instruments/instruments.module';
 import { TradesModule } from './modules/trades/trades.module';
 import { TradeMediaModule } from './modules/trade-media/trade-media.module';
@@ -24,8 +25,6 @@ import { validateEnv } from './config/env.validation';
       isGlobal: true,
       validate: validateEnv,
     }),
-    // Rate limiting global: 100 req/min por IP. Endpoints sensibles (login)
-    // endurecen su propio límite con @Throttle.
     ThrottlerModule.forRoot([
       {
         ttl: seconds(60),
@@ -37,6 +36,7 @@ import { validateEnv } from './config/env.validation';
     AuthModule,
     HealthModule,
     AccountsModule,
+    CapitalMovementsModule,
     InstrumentsModule,
     TradesModule,
     TradeMediaModule,

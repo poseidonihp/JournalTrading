@@ -21,6 +21,9 @@ export type MediaKind = z.infer<typeof MediaKindEnum>;
 export const DataFeeFrequencyEnum = z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL']);
 export type DataFeeFrequency = z.infer<typeof DataFeeFrequencyEnum>;
 
+export const CapitalMovementTypeEnum = z.enum(['DEPOSIT', 'WITHDRAWAL']);
+export type CapitalMovementType = z.infer<typeof CapitalMovementTypeEnum>;
+
 /**
  * Etiquetas en español para mostrar al usuario.
  * Mantener sincronizado con los enums del schema Prisma.
@@ -46,6 +49,10 @@ export const enumLabels = {
     MONTHLY: 'Mensual',
     QUARTERLY: 'Trimestral',
     ANNUAL: 'Anual',
+  },
+  capitalMovementType: {
+    DEPOSIT: 'Aporte',
+    WITHDRAWAL: 'Retiro',
   },
   /** Unidad en la que se miden los puntos según la categoría del instrumento. */
   pointsUnit: {

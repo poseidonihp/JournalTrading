@@ -7,6 +7,7 @@ interface DayCell {
   day: number | null;
   net: number;
   tradesCount: number;
+  fees: number;
   winRate: number;
 }
 
@@ -43,15 +44,15 @@ const DAYS_PER_WEEK = 7;
             <div
               class="day-cell"
               [class.has-trades]="c.tradesCount > 0"
-              [style.background]="bg(c.net, c.tradesCount)"
-              [style.color]="fg(c.net, c.tradesCount)"
+              [style.background]="bg(c.net, hasMovement(c))"
+              [style.color]="fg(c.net, hasMovement(c))"
               [title]="tooltip(c)"
             >
               <div class="day-number">{{ c.day }}</div>
-              @if (c.tradesCount > 0) {
+              @if (hasMovement(c)) {
                 <div class="day-stats">
                   <div class="pnl">{{ pnl(c.net) }}</div>
-                  <div class="meta">{{ c.tradesCount }}t · {{ c.winRate.toFixed(0) }}%</div>
+                  <div class="meta">{{ meta(c) }}</div>
                 </div>
               }
             </div>
@@ -176,7 +177,9 @@ export class CalendarHeatmapComponent {
 
   protected readonly rows = computed<Row[]>(() => {
     const c = this.calendar();
-    if (!c.days.length) return [];
+    if (!c.days.length) {
+      return [];
+    }
     const first = c.days[0];
     if (!first) {
       return [];
@@ -187,7 +190,7 @@ export class CalendarHeatmapComponent {
 
     const flat: DayCell[] = [];
     for (let i = 0; i < offset; i++) {
-      flat.push({ date: null, day: null, net: 0, tradesCount: 0, winRate: 0 });
+      flat.push({ date: null, day: null, net: 0, tradesCount: 0, fees: 0, winRate: 0 });
     }
     for (const d of c.days) {
       flat.push({
@@ -195,11 +198,12 @@ export class CalendarHeatmapComponent {
         day: Number(d.date.slice(-2)),
         net: Number(d.net),
         tradesCount: d.tradesCount,
+        fees: Number(d.fees),
         winRate: d.winRate,
       });
     }
     while (flat.length % DAYS_PER_WEEK !== 0) {
-      flat.push({ date: null, day: null, net: 0, tradesCount: 0, winRate: 0 });
+      flat.push({ date: null, day: null, net: 0, tradesCount: 0, fees: 0, winRate: 0 });
     }
 
     const rows: Row[] = [];
@@ -215,23 +219,52 @@ export class CalendarHeatmapComponent {
     return rows;
   });
 
-  protected bg(net: number, trades: number): string {
-    if (trades === 0) return 'var(--qp-bg)';
-    if (net > 0) return 'rgba(78, 130, 87, 0.18)';
-    if (net < 0) return 'rgba(176, 80, 60, 0.18)';
+  /** Un día con fee de data tiene movimiento aunque no se haya operado en él. */
+  protected hasMovement(c: DayCell): boolean {
+    return c.tradesCount > 0 || c.fees !== 0;
+  }
+
+  /** Segunda línea de la celda: trades del día, o el fee si no se operó. */
+  protected meta(c: DayCell): string {
+    if (c.tradesCount > 0) {
+      return `${c.tradesCount}t · ${c.winRate.toFixed(0)}%`;
+    }
+    return 'fee data';
+  }
+
+  protected bg(net: number, hasMovement: boolean): string {
+    if (!hasMovement) {
+      return 'var(--qp-bg)';
+    }
+    if (net > 0) {
+      return 'rgba(78, 130, 87, 0.18)';
+    }
+    if (net < 0) {
+      return 'rgba(176, 80, 60, 0.18)';
+    }
     return 'var(--qp-bg)';
   }
 
-  protected fg(net: number, trades: number): string {
-    if (trades === 0) return 'var(--qp-mute-2)';
-    if (net > 0) return 'var(--qp-positive)';
-    if (net < 0) return 'var(--qp-clay)';
+  protected fg(net: number, hasMovement: boolean): string {
+    if (!hasMovement) {
+      return 'var(--qp-mute-2)';
+    }
+    if (net > 0) {
+      return 'var(--qp-positive)';
+    }
+    if (net < 0) {
+      return 'var(--qp-clay)';
+    }
     return 'var(--qp-ink)';
   }
 
   protected weekColor(net: number): string {
-    if (net > 0) return 'var(--qp-positive)';
-    if (net < 0) return 'var(--qp-clay)';
+    if (net > 0) {
+      return 'var(--qp-positive)';
+    }
+    if (net < 0) {
+      return 'var(--qp-clay)';
+    }
     return 'var(--qp-mute-2)';
   }
 
@@ -244,7 +277,13 @@ export class CalendarHeatmapComponent {
   }
 
   protected tooltip(c: DayCell): string {
-    if (!c.date) return '';
-    return `${c.date} · ${c.tradesCount} trades · ${formatUsd(c.net)}`;
+    if (!c.date) {
+      return '';
+    }
+    const base = `${c.date} · ${c.tradesCount} trades · ${formatUsd(c.net)}`;
+    if (c.fees === 0) {
+      return base;
+    }
+    return `${base} · incluye fee de data ${formatUsd(c.fees)}`;
   }
 }

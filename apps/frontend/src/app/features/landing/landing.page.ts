@@ -22,6 +22,7 @@ import {
   type LucideIconData,
 } from 'lucide-angular';
 import { ThemeService } from '../../core/theme/theme.service';
+import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 
 /** Tarjeta de la tira de secciones de la landing. */
 interface ILandingFeature {
@@ -41,7 +42,7 @@ interface ILandingFeature {
   selector: 'app-landing',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, LucideAngularModule],
+  imports: [RouterLink, LucideAngularModule, BrandMarkComponent],
   templateUrl: './landing.page.html',
   styleUrl: './landing.page.scss',
 })

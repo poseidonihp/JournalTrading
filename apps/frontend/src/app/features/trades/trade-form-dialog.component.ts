@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   signal,
+  type OnInit,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -71,7 +72,7 @@ interface PendingFile {
   styleUrl: './trade-form-dialog.component.scss',
   host: { '(document:paste)': 'onPaste($event)' },
 })
-export class TradeFormDialogComponent {
+export class TradeFormDialogComponent implements OnInit {
   protected readonly iconTrash = Trash2;
   protected readonly iconImage = ImageIcon;
   protected readonly formatUsd = formatUsd;
@@ -181,7 +182,6 @@ export class TradeFormDialogComponent {
   });
 
   constructor() {
-    void this.tradeTypesStore.load();
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.formValue.set(this.form.getRawValue());
       this.exitBeforeEntry.set(this.form.errors?.['exitBeforeEntry'] === true);
@@ -213,6 +213,48 @@ export class TradeFormDialogComponent {
     this.form.controls.contracts.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.fillCommissionFromInstrument());
+  }
+
+  ngOnInit(): void {
+    void this.loadCatalogs();
+  }
+
+  /**
+   * El diálogo se abre desde cualquier pantalla (botón global "Nuevo trade"), así que los
+   * catálogos de instrumentos y tipos de trade pueden no estar cargados todavía. Se cargan al
+   * abrir y, cuando llegan, se aplican los predeterminados que `initializeForm` no pudo poner.
+   * @private
+   * @returns {Promise<void>}
+   */
+  private async loadCatalogs(): Promise<void> {
+    try {
+      await Promise.all([this.instrumentsStore.load(), this.tradeTypesStore.load()]);
+    } catch (e) {
+      this.errorMessage.set(ApiClient.messageFromError(e));
+      return;
+    }
+    this.applyCatalogDefaults();
+  }
+
+  /**
+   * Selecciona el primer instrumento y tipo de trade disponibles cuando el formulario es nuevo y
+   * esos campos quedaron vacíos porque los catálogos aún no habían cargado.
+   * @private
+   * @returns {void}
+   */
+  private applyCatalogDefaults(): void {
+    if (this.isEdit) {
+      return;
+    }
+    const instrument = this.form.controls.instrumentId;
+    if (!instrument.value) {
+      instrument.setValue(this.instrumentsStore.list()[0]?.id ?? '', { emitEvent: false });
+    }
+    const tradeType = this.form.controls.tradeTypeId;
+    if (!tradeType.value) {
+      tradeType.setValue(this.tradeTypesStore.types()[0]?.id ?? '', { emitEvent: false });
+    }
+    this.formValue.set(this.form.getRawValue());
   }
 
   private fillCommissionFromInstrument(): void {

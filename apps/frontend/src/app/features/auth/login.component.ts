@@ -6,16 +6,22 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { ErrorBannerComponent } from '../../shared/ui/error-banner.component';
 import { FieldComponent } from '../../shared/ui/field.component';
 import { SubmitButtonComponent } from '../../shared/ui/submit-button.component';
+import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, FieldComponent, ErrorBannerComponent, SubmitButtonComponent],
+  imports: [
+    ReactiveFormsModule,
+    FieldComponent,
+    ErrorBannerComponent,
+    SubmitButtonComponent,
+    BrandMarkComponent,
+  ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-
 export class LoginComponent {
   protected readonly iconLogin = LogIn;
   protected readonly submitting = signal(false);

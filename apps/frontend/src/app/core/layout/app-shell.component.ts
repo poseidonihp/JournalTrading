@@ -16,6 +16,7 @@ import { AuthStore } from '../auth/auth.store';
 import { IdleTimeoutService } from '../auth/idle-timeout.service';
 import { AccountsStore } from '../accounts/accounts.store';
 import { AccountSelectorComponent } from './account-selector.component';
+import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import {
   TradeFormDialogComponent,
   type TradeFormDialogData,
@@ -38,6 +39,7 @@ interface NavItem {
     RouterLinkActive,
     LucideAngularModule,
     AccountSelectorComponent,
+    BrandMarkComponent,
     CdkMenuTrigger,
     CdkMenu,
     CdkMenuItem,

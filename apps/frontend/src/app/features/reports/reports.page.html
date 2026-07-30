@@ -12,6 +12,8 @@
     </div>
   }
 
+  <journal-capital-summary />
+
   <!-- =============================== RESUMEN ANUAL =============================== -->
   <section class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-3">
@@ -74,7 +76,7 @@
                 <td class="py-2 px-2 text-center font-semibold" style="color: var(--qp-clay);">{{ y.totals.losses }}</td>
                 <td class="py-2 px-2 text-right font-semibold whitespace-nowrap" [style.color]="pnlColor(y.totals.points)">{{ formatPoints(y.totals.points) }}</td>
                 <td class="py-2 px-2 text-right font-semibold whitespace-nowrap">{{ formatUsd(y.totals.gross) }}</td>
-                <td class="py-2 px-2 text-right font-semibold serif text-[14px] whitespace-nowrap" [style.color]="pnlColor(y.totals.net)">{{ formatUsd(y.totals.net) }}</td>
+                <td class="py-2 px-2 text-right font-semibold serif text-[14px] whitespace-nowrap" [style.color]="pnlColor(y.totals.net)" [title]="netTooltip(y.totals)">{{ formatUsd(y.totals.net) }}</td>
                 <td class="py-2 px-2 text-right" style="color: var(--qp-mute-2);">—</td>
                 <td class="py-2 px-2 text-center font-semibold whitespace-nowrap" [style.color]="winRateBar(y.totals.winRate).color">
                   {{ formatPct(y.totals.winRate) }}
@@ -89,11 +91,11 @@
               </tr>
               @for (m of y.months; track m.month; let idx = $index) {
                 <tr class="transition-colors hover:bg-fg-soft/40"
-                  [style.opacity]="m.trades === 0 ? 0.5 : 1"
+                  [style.opacity]="monthHasData(m) ? 1 : 0.5"
                   [style.background]="idx % 2 === 1 ? 'color-mix(in srgb, var(--qp-ink) 2%, transparent)' : 'transparent'">
                   <td class="py-1.5 pl-4 pr-2 border-b whitespace-nowrap" style="border-color: var(--qp-line); color: var(--qp-ink);">
                     <span class="inline-flex items-center gap-2">
-                      <span class="w-1 h-3.5 rounded-sm" [style.background]="m.trades === 0 ? 'var(--qp-line)' : pnlColor(m.net)"></span>
+                      <span class="w-1 h-3.5 rounded-sm" [style.background]="monthHasData(m) ? pnlColor(m.net) : 'var(--qp-line)'"></span>
                       {{ monthNames[m.month - 1] }}
                     </span>
                   </td>
@@ -114,12 +116,13 @@
                   </td>
                   <td class="py-1.5 px-2 text-right border-b font-semibold whitespace-nowrap"
                     [style.border-color]="'var(--qp-line)'"
-                    [style.background]="cellTint(m.net, m.trades)"
-                    [style.color]="m.trades > 0 ? pnlColor(m.net) : 'var(--qp-mute-2)'">
-                    {{ m.trades > 0 ? formatUsd(m.net) : '—' }}
+                    [style.background]="cellTint(m.net, monthHasData(m) ? 1 : 0)"
+                    [style.color]="monthHasData(m) ? pnlColor(m.net) : 'var(--qp-mute-2)'"
+                    [title]="netTooltip(m)">
+                    {{ monthHasData(m) ? formatUsd(m.net) : '—' }}
                   </td>
                   <td class="py-1.5 px-2 text-right border-b whitespace-nowrap" style="border-color: var(--qp-line); color: var(--qp-mute);">
-                    {{ m.trades > 0 ? formatUsd(m.cumulativeNet) : '—' }}
+                    {{ monthHasData(m) ? formatUsd(m.cumulativeNet) : '—' }}
                   </td>
                   <td class="py-1.5 px-2 text-center border-b font-medium whitespace-nowrap" style="border-color: var(--qp-line);"
                       [style.color]="m.trades > 0 ? winRateBar(m.winRate).color : 'var(--qp-mute-2)'">
@@ -290,11 +293,7 @@
           Cargando…
         </div>
       } @else if (series(); as s) {
-        <div class="overflow-x-auto">
-          <div style="min-width: 800px;">
-            <app-underwater-chart [series]="s" [granularity]="granularity()" />
-          </div>
-        </div>
+        <app-underwater-chart [series]="s" [granularity]="granularity()" />
       }
       </div>
     </div>

@@ -1,6 +1,6 @@
 <div
-  class="shell-root flex h-screen w-screen overflow-hidden"
-  style="background: var(--qp-bg); color: var(--qp-ink);"
+  class="shell-root relative flex h-screen w-screen overflow-hidden"
+  style="background: var(--qp-bg); color: var(--qp-ink)"
 >
   @if (sidebarOpen()) {
     <button
@@ -13,16 +13,16 @@
   <aside
     class="sidebar flex w-[232px] shrink-0 flex-col px-5 pb-6 pt-7"
     [class.open]="sidebarOpen()"
-    style="background: var(--qp-bg-soft); border-right: 1px solid var(--qp-line);"
+    style="background: var(--qp-bg-soft); border-right: 1px solid var(--qp-line)"
     aria-label="Navegación principal"
   >
-    <div class="serif mb-11 text-[26px] leading-none">Journal</div>
+    <journal-brand-mark class="mb-11 h-10 w-10 self-center" />
 
     <button
       type="button"
       (click)="openNewTrade()"
       class="pill pill-solid mb-7 justify-between"
-      style="display: flex; padding: 11px 14px; border-radius: 8px;"
+      style="display: flex; padding: 11px 14px; border-radius: 8px"
     >
       <span class="flex items-center gap-2">
         <lucide-icon [name]="iconPlus" class="h-4 w-4"></lucide-icon>
@@ -48,7 +48,7 @@
       }
     </nav>
 
-    <div class="mt-5 flex items-center gap-2.5 border-t pt-5" style="border-color: var(--qp-line);">
+    <div class="mt-5 flex items-center gap-2.5 border-t pt-5" style="border-color: var(--qp-line)">
       <button
         type="button"
         [cdkMenuTriggerFor]="userMenu"
@@ -59,7 +59,7 @@
       </button>
       <div class="flex flex-1 flex-col overflow-hidden">
         <span class="truncate text-[12px] font-medium">{{ user()?.displayName ?? 'Diego' }}</span>
-        <span class="truncate text-[10px]" style="color: var(--qp-mute-2);">
+        <span class="truncate text-[10px]" style="color: var(--qp-mute-2)">
           {{ accountLabel() }}
         </span>
       </div>
@@ -67,7 +67,7 @@
         type="button"
         (click)="theme.toggle()"
         class="icon-btn"
-        style="width: 28px; height: 28px;"
+        style="width: 28px; height: 28px"
         [attr.aria-label]="theme.isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
       >
         @if (theme.isDark()) {
@@ -82,22 +82,22 @@
       <ul
         cdkMenu
         class="z-50 mt-1 min-w-48 rounded-md p-1 shadow-lg"
-        style="background: var(--qp-bg-soft); border: 1px solid var(--qp-line-strong);"
+        style="background: var(--qp-bg-soft); border: 1px solid var(--qp-line-strong)"
       >
-        <li class="px-2 py-1.5 text-xs" style="color: var(--qp-mute);">
-          <div class="font-medium" style="color: var(--qp-ink);">{{ user()?.displayName }}</div>
+        <li class="px-2 py-1.5 text-xs" style="color: var(--qp-mute)">
+          <div class="font-medium" style="color: var(--qp-ink)">{{ user()?.displayName }}</div>
           <div class="truncate">{{ user()?.email }}</div>
         </li>
-        <li class="my-1 h-px" style="background: var(--qp-line);"></li>
+        <li class="my-1 h-px" style="background: var(--qp-line)"></li>
         <li class="px-2 py-1.5">
           <app-account-selector />
         </li>
-        <li class="my-1 h-px" style="background: var(--qp-line);"></li>
+        <li class="my-1 h-px" style="background: var(--qp-line)"></li>
         <li
           cdkMenuItem
           (cdkMenuItemTriggered)="logout()"
           class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm"
-          style="color: var(--qp-clay);"
+          style="color: var(--qp-clay)"
         >
           <lucide-icon [name]="iconLogout" class="h-3.5 w-3.5"></lucide-icon>
           <span>Cerrar sesión</span>
@@ -110,19 +110,19 @@
     <!-- Barra superior sólo en móvil: abre el drawer de navegación. -->
     <div
       class="mobile-bar flex items-center gap-3 px-4 py-3"
-      style="background: var(--qp-bg-soft); border-bottom: 1px solid var(--qp-line);"
+      style="background: var(--qp-bg-soft); border-bottom: 1px solid var(--qp-line)"
     >
       <button
         type="button"
         (click)="toggleSidebar()"
         class="icon-btn"
-        style="width: 34px; height: 34px;"
+        style="width: 34px; height: 34px"
         aria-label="Abrir menú de navegación"
         [attr.aria-expanded]="sidebarOpen()"
       >
         <lucide-icon [name]="iconMenu" class="h-4 w-4"></lucide-icon>
       </button>
-      <span class="serif text-[20px] leading-none">Journal</span>
+      <journal-brand-mark class="h-7 w-7" />
     </div>
     <router-outlet />
   </main>

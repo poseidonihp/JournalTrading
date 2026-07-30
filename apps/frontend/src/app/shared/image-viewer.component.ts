@@ -3,9 +3,11 @@ import {
   Component,
   HostListener,
   computed,
+  effect,
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { LucideAngularModule, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-angular';
 
@@ -27,17 +29,41 @@ export interface ViewerImage {
       aria-label="Visor de imagen"
       (click)="onBackdropClick($event)"
     >
-      <button type="button" class="viewer-btn viewer-close" (click)="dismissed.emit()" aria-label="Cerrar">
+      <button
+        type="button"
+        class="viewer-btn viewer-close"
+        (click)="dismissed.emit()"
+        aria-label="Cerrar"
+      >
         <lucide-icon [name]="iconClose" class="h-5 w-5"></lucide-icon>
       </button>
 
+      @if (caption()) {
+        <div class="viewer-topbar" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="viewer-btn"
+            [disabled]="!hasPrevRecord()"
+            (click)="goPrevRecord()"
+            aria-label="Registro anterior"
+          >
+            <lucide-icon [name]="iconPrev" class="h-4 w-4"></lucide-icon>
+          </button>
+          <span class="viewer-caption">{{ caption() }}</span>
+          <button
+            type="button"
+            class="viewer-btn"
+            [disabled]="!hasNextRecord()"
+            (click)="goNextRecord()"
+            aria-label="Registro siguiente"
+          >
+            <lucide-icon [name]="iconNext" class="h-4 w-4"></lucide-icon>
+          </button>
+        </div>
+      }
+
       @if (images().length > 1) {
-        <button
-          type="button"
-          class="viewer-btn viewer-prev"
-          (click)="prev()"
-          aria-label="Anterior"
-        >
+        <button type="button" class="viewer-btn viewer-prev" (click)="prev()" aria-label="Anterior">
           <lucide-icon [name]="iconPrev" class="h-6 w-6"></lucide-icon>
         </button>
         <button
@@ -50,18 +76,20 @@ export interface ViewerImage {
         </button>
       }
 
-      <div class="viewer-toolbar" (click)="$event.stopPropagation()">
-        <button type="button" class="viewer-btn" (click)="zoomOut()" aria-label="Reducir">
-          <lucide-icon [name]="iconZoomOut" class="h-4 w-4"></lucide-icon>
-        </button>
-        <span class="viewer-zoom">{{ zoomLabel() }}</span>
-        <button type="button" class="viewer-btn" (click)="zoomIn()" aria-label="Ampliar">
-          <lucide-icon [name]="iconZoomIn" class="h-4 w-4"></lucide-icon>
-        </button>
-        @if (images().length > 1) {
-          <span class="viewer-counter">{{ index() + 1 }} / {{ images().length }}</span>
-        }
-      </div>
+      @if (current()) {
+        <div class="viewer-toolbar" (click)="$event.stopPropagation()">
+          <button type="button" class="viewer-btn" (click)="zoomOut()" aria-label="Reducir">
+            <lucide-icon [name]="iconZoomOut" class="h-4 w-4"></lucide-icon>
+          </button>
+          <span class="viewer-zoom">{{ zoomLabel() }}</span>
+          <button type="button" class="viewer-btn" (click)="zoomIn()" aria-label="Ampliar">
+            <lucide-icon [name]="iconZoomIn" class="h-4 w-4"></lucide-icon>
+          </button>
+          @if (images().length > 1) {
+            <span class="viewer-counter">{{ index() + 1 }} / {{ images().length }}</span>
+          }
+        </div>
+      }
 
       <div class="viewer-stage" (click)="$event.stopPropagation()" (wheel)="onWheel($event)">
         @if (current(); as img) {
@@ -72,6 +100,8 @@ export interface ViewerImage {
             [style.transform]="'scale(' + zoom() + ')'"
             draggable="false"
           />
+        } @else if (emptyLabel()) {
+          <p class="viewer-empty">{{ emptyLabel() }}</p>
         }
       </div>
     </div>
@@ -134,8 +164,12 @@ export interface ViewerImage {
           background 120ms ease,
           transform 120ms ease;
       }
-      .viewer-btn:hover {
+      .viewer-btn:hover:not(:disabled) {
         background: rgba(255, 255, 255, 0.16);
+      }
+      .viewer-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
       }
       .viewer-close {
         position: absolute;
@@ -158,9 +192,9 @@ export interface ViewerImage {
         width: 48px;
         height: 48px;
       }
-      .viewer-toolbar {
+      .viewer-toolbar,
+      .viewer-topbar {
         position: absolute;
-        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
@@ -173,9 +207,30 @@ export interface ViewerImage {
         backdrop-filter: blur(8px);
         color: #fff;
       }
-      .viewer-toolbar .viewer-btn {
+      .viewer-toolbar {
+        bottom: 20px;
+      }
+      .viewer-topbar {
+        top: 20px;
+        max-width: calc(100% - 140px);
+      }
+      .viewer-toolbar .viewer-btn,
+      .viewer-topbar .viewer-btn {
         width: 32px;
         height: 32px;
+        flex: none;
+      }
+      .viewer-caption {
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .viewer-empty {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.7);
+        text-align: center;
       }
       .viewer-zoom {
         font-size: 12px;
@@ -202,7 +257,17 @@ export class ImageViewerComponent {
 
   readonly images = input.required<ViewerImage[]>();
   readonly startIndex = input<number>(0);
+  /** Texto de la barra superior; si viene vacío la barra no se renderiza. */
+  readonly caption = input<string>('');
+  /** Identifica el registro visible: al cambiar se reposiciona el índice y se resetea el zoom. */
+  readonly recordKey = input<string | null>(null);
+  readonly hasPrevRecord = input<boolean>(false);
+  readonly hasNextRecord = input<boolean>(false);
+  /** Mensaje a mostrar cuando el registro actual no tiene imágenes. */
+  readonly emptyLabel = input<string>('');
   readonly dismissed = output();
+  readonly prevRecord = output();
+  readonly nextRecord = output();
 
   protected readonly index = signal(0);
   protected readonly zoom = signal(1);
@@ -210,7 +275,13 @@ export class ImageViewerComponent {
   protected readonly zoomLabel = computed(() => `${Math.round(this.zoom() * 100)}%`);
 
   constructor() {
-    queueMicrotask(() => this.index.set(this.clampIndex(this.startIndex())));
+    effect(() => {
+      this.recordKey();
+      untracked(() => {
+        this.index.set(this.clampIndex(this.startIndex()));
+        this.zoom.set(1);
+      });
+    });
   }
 
   private clampIndex(i: number): number {
@@ -237,6 +308,18 @@ export class ImageViewerComponent {
     }
     this.zoom.set(1);
     this.index.update((i) => (i + 1) % len);
+  }
+
+  protected goPrevRecord(): void {
+    if (this.hasPrevRecord()) {
+      this.prevRecord.emit();
+    }
+  }
+
+  protected goNextRecord(): void {
+    if (this.hasNextRecord()) {
+      this.nextRecord.emit();
+    }
   }
 
   protected zoomIn(): void {
@@ -269,14 +352,33 @@ export class ImageViewerComponent {
   protected onKey(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       this.dismissed.emit();
-    } else if (event.key === 'ArrowLeft') {
-      this.prev();
-    } else if (event.key === 'ArrowRight') {
-      this.next();
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      this.onHorizontalKey(event);
     } else if (event.key === '+' || event.key === '=') {
       this.zoomIn();
     } else if (event.key === '-') {
       this.zoomOut();
+    }
+  }
+
+  /**
+   * Las flechas pasan entre las imágenes del registro actual; si solo hay una (o ninguna),
+   * o si se mantiene Shift, cambian de registro.
+   */
+  private onHorizontalKey(event: KeyboardEvent): void {
+    const backwards = event.key === 'ArrowLeft';
+    if (!event.shiftKey && this.images().length > 1) {
+      if (backwards) {
+        this.prev();
+      } else {
+        this.next();
+      }
+      return;
+    }
+    if (backwards) {
+      this.goPrevRecord();
+    } else {
+      this.goNextRecord();
     }
   }
 }

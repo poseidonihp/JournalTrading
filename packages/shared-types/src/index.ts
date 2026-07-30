@@ -12,6 +12,14 @@ export {
   type UpdateTradeTypeDto,
 } from './trade-type';
 export {
+  CapitalMovementSchema,
+  CreateCapitalMovementSchema,
+  UpdateCapitalMovementSchema,
+  type CapitalMovement,
+  type CreateCapitalMovementDto,
+  type UpdateCapitalMovementDto,
+} from './capital-movement';
+export {
   SessionSchema,
   UpsertSessionSchema,
   SessionListQuerySchema,

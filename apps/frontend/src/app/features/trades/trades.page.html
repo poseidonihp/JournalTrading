@@ -4,30 +4,22 @@
     <div>
       <h1 class="serif text-[44px] leading-none">
         Trades
-        <span
-          class="ml-3 align-middle text-[13px]"
-          style="font-family: 'Geist', sans-serif; font-style: normal; letter-spacing: 0; color: var(--qp-mute-2);"
+        <span class="title-note ml-3 align-middle"
+          >Última importación · hace {{ lastImport() }}</span
         >
-          Última importación · hace {{ lastImport() }}
-        </span>
       </h1>
-      <p class="mt-2 flex items-center gap-2 text-[12px]" style="color: var(--qp-mute);">
+      <p class="muted mt-2 flex items-center gap-2 text-[12px]">
         <span>{{ rangeLabel() }}</span>
-        <span class="inline-block h-[3px] w-[3px] rounded-full" style="background: var(--qp-mute-2);"></span>
+        <span class="dot"></span>
         <span>{{ activeDays() }} días activos</span>
-        <span class="inline-block h-[3px] w-[3px] rounded-full" style="background: var(--qp-mute-2);"></span>
+        <span class="dot"></span>
         <span>
           {{ tradeCount() }} trades · {{ kpiCounts().winners }}G / {{ kpiCounts().losers }}P
         </span>
       </p>
     </div>
     <div class="flex items-center gap-2">
-      <a
-        [href]="exportCsvUrl()"
-        target="_blank"
-        rel="noopener"
-        class="pill"
-      >
+      <a [href]="exportCsvUrl()" target="_blank" rel="noopener" class="pill">
         <lucide-icon [name]="iconDownload" class="h-3.5 w-3.5"></lucide-icon>
         CSV
       </a>
@@ -47,35 +39,31 @@
     <div class="kpi-cell">
       <span class="uplabel">Neto del período</span>
       <div class="flex items-end gap-3">
-        <span class="kpi-value" [style.color]="netSum() >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'">
-          {{ netSum() >= 0 ? '+' : '−' }}{{ formatUsdAbs(netSum()) }}
+        <span
+          class="kpi-value"
+          [class.positive]="isNetSumPositive()"
+          [class.negative]="!isNetSumPositive()"
+        >
+          {{ isNetSumPositive() ? '+' : '−' }}{{ formatUsdAbs(netSum()) }}
         </span>
-        <svg [attr.width]="160" [attr.height]="42">
-          <path
-            [attr.d]="sparkArea()"
-            [attr.fill]="netSum() >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
-            opacity="0.1"
-          />
-          <polyline
-            [attr.points]="sparkLine()"
-            fill="none"
-            [attr.stroke]="netSum() >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
-            stroke-width="1.4"
-            stroke-linejoin="round"
-          />
+        <svg
+          [attr.width]="sparkWidth"
+          [attr.height]="sparkHeight"
+          [class.positive]="isNetSumPositive()"
+          [class.negative]="!isNetSumPositive()"
+          aria-hidden="true"
+        >
+          <path [attr.d]="sparkArea()" class="spark-area" />
+          <polyline [attr.points]="sparkLine()" class="spark-line" />
         </svg>
       </div>
-      <span class="text-[11px]" style="color: var(--qp-mute);">
-        {{ tradeCount() }} trades · neto acumulado
-      </span>
+      <span class="kpi-note">{{ tradeCount() }} trades · neto acumulado</span>
     </div>
 
     <div class="kpi-cell">
       <span class="uplabel">Win rate</span>
-      <span class="kpi-value">
-        {{ winRate() }}<span class="ml-0.5 text-[18px]" style="font-family:'Geist',sans-serif; font-style:normal; color: var(--qp-mute-2);">%</span>
-      </span>
-      <span class="text-[11px]" style="color: var(--qp-mute);">
+      <span class="kpi-value">{{ winRate() }}<span class="kpi-unit">%</span></span>
+      <span class="kpi-note">
         {{ kpiCounts().winners }} ganadores · {{ kpiCounts().losers }} perdedores
       </span>
     </div>
@@ -83,7 +71,7 @@
     <div class="kpi-cell">
       <span class="uplabel">Profit factor</span>
       <span class="kpi-value">{{ profitFactor() }}</span>
-      <span class="text-[11px]" style="color: var(--qp-mute);">
+      <span class="kpi-note">
         {{ formatUsd(kpiCounts().avgWinner) }} / {{ formatUsd(kpiCounts().avgLoser) }} promedio
       </span>
     </div>
@@ -91,17 +79,15 @@
     <div class="kpi-cell">
       <span class="uplabel">Expectancy</span>
       <span class="kpi-value">{{ formatUsdAbs(expectancy()) }}</span>
-      <span class="text-[11px]" style="color: var(--qp-mute);">por trade</span>
+      <span class="kpi-note">por trade</span>
     </div>
 
     <div class="kpi-cell">
       <span class="uplabel">Mejor / peor</span>
       <span class="kpi-value">
-        <span style="color: var(--qp-sage);">+{{ formatUsdAbs(kpiCounts().best) }}</span>
+        <span class="positive">+{{ formatUsdAbs(kpiCounts().best) }}</span>
       </span>
-      <span class="text-[11px]" style="color: var(--qp-clay);">
-        −{{ formatUsdAbs(kpiCounts().worst) }} peor trade
-      </span>
+      <span class="kpi-note negative">−{{ formatUsdAbs(kpiCounts().worst) }} peor trade</span>
     </div>
   </div>
 
@@ -155,61 +141,54 @@
               [class.selected]="row.id === selectedId()"
               [class.day-change]="isDayChange(i)"
             >
-              <span style="color: var(--qp-mute-2); font-weight: 400;">
-                {{ dayLabel(row) }}
-              </span>
+              <span class="dia-cell">{{ dayLabel(row) }}</span>
               <span class="producto-cell">{{ row.instrumentSymbol }}</span>
               <span class="thumb-cell">
                 @if (firstImage(row); as img) {
-                  <img
-                    [src]="img.thumbnailUrl ?? img.url"
-                    class="thumb-img"
-                    alt="Adjunto"
-                  />
+                  <img [src]="img.thumbnailUrl ?? img.url" class="thumb-img" alt="Adjunto" />
                 }
               </span>
-              <span class="ta-right" style="color: var(--qp-mute);">{{ row.contracts }}</span>
-              <span style="color: var(--qp-mute);">{{ formatTime(row.enteredAt) }}</span>
-              <span style="color: var(--qp-mute);">{{ formatDuration(row.durationSeconds) }}</span>
+              <span class="muted ta-right">{{ row.contracts }}</span>
+              <span class="muted">{{ formatTime(row.enteredAt) }}</span>
+              <span class="muted">{{ formatDuration(row.durationSeconds) }}</span>
               <span>
                 <span
                   class="setup-tag"
-                  [style.background]="row.tradeTypeColor + '22'"
+                  [style.background]="row.tradeTypeColor + setupBgAlpha"
                   [style.color]="row.tradeTypeColor"
-                  [style.border]="'1px solid ' + row.tradeTypeColor + '55'"
-                >{{ row.tradeTypeName }}</span>
+                  [style.border-color]="row.tradeTypeColor + setupBorderAlpha"
+                  >{{ row.tradeTypeName }}</span
+                >
               </span>
-              <span style="color: var(--qp-mute);">{{ labelExit(row.exitReason) }}</span>
+              <span class="muted">{{ labelExit(row.exitReason) }}</span>
               <span>
                 <span
                   class="dir-chip"
-                  [style.color]="row.direction === 'LONG' ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+                  [class.long]="row.direction === 'LONG'"
+                  [class.short]="row.direction === 'SHORT'"
                 >
-                  <span
-                    class="dir-triangle"
-                    [style.borderBottom]="row.direction === 'LONG' ? '5px solid var(--qp-sage)' : 'none'"
-                    [style.borderTop]="row.direction === 'SHORT' ? '5px solid var(--qp-clay)' : 'none'"
-                  ></span>
-                  {{ row.direction === 'LONG' ? 'LONG' : 'SHORT' }}
+                  <span class="dir-triangle"></span>
+                  {{ row.direction }}
                 </span>
               </span>
               <span>
-                <span class="emo" [style.background]="emotionBg(row.emotion)" [style.color]="emotionFg(row.emotion)">
+                <span class="emo" [class]="emotionClass(row.emotion)">
                   {{ labelEmotion(row.emotion) }}
                 </span>
               </span>
               <span
-                class="ta-right"
-                [style.color]="Number(row.net) >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
-                style="font-weight: 500;"
+                class="puntos-cell ta-right"
+                [class.positive]="isRowNetPositive(row)"
+                [class.negative]="!isRowNetPositive(row)"
               >
-                {{ Number(row.pointsTotal) >= 0 ? '+' : '' }}{{ formatPoints(row.pointsTotal) }}
+                {{ isRowPointsPositive(row) ? '+' : '' }}{{ formatPoints(row.pointsTotal) }}
               </span>
               <span
                 class="neto-cell"
-                [style.color]="Number(row.net) >= 0 ? 'var(--qp-sage)' : 'var(--qp-clay)'"
+                [class.positive]="isRowNetPositive(row)"
+                [class.negative]="!isRowNetPositive(row)"
               >
-                {{ Number(row.net) >= 0 ? '+' : '−' }}{{ formatUsdAbs(row.net) }}
+                {{ isRowNetPositive(row) ? '+' : '−' }}{{ formatUsdAbs(row.net) }}
               </span>
             </div>
           }
@@ -217,12 +196,7 @@
       }
 
       @if (errorMessage()) {
-        <div
-          class="border-t px-6 py-2 text-xs"
-          style="border-color: var(--qp-clay); background: rgba(181,80,60,0.08); color: var(--qp-clay);"
-        >
-          {{ errorMessage() }}
-        </div>
+        <div class="error-banner border-t px-6 py-2 text-xs">{{ errorMessage() }}</div>
       }
     </div>
 
@@ -232,6 +206,22 @@
         (dismissed)="closeDetail()"
         (edited)="openForm(trade)"
         (removed)="confirmDelete(trade)"
+        (mediaOpened)="openViewer($event)"
+      />
+    }
+
+    @if (viewerOpen() && selected()) {
+      <app-image-viewer
+        [images]="viewerImages()"
+        [startIndex]="viewerIndex()"
+        [recordKey]="selectedId()"
+        [caption]="viewerCaption()"
+        [hasPrevRecord]="hasPrevTrade()"
+        [hasNextRecord]="hasNextTrade()"
+        emptyLabel="Este trade no tiene imágenes"
+        (prevRecord)="showPrevTrade()"
+        (nextRecord)="showNextTrade()"
+        (dismissed)="closeViewer()"
       />
     }
   </div>

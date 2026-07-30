@@ -17,15 +17,14 @@ import { InstrumentsStore } from '../../core/instruments/instruments.store';
 import { ConfirmService } from '../../core/confirm/confirm.service';
 import { TradesStore } from './trades.store';
 import { TradesFilterBarComponent } from './trades-filter-bar.component';
-import {
-  TradeFormDialogComponent,
-  type TradeFormDialogData,
-} from './trade-form-dialog.component';
+import { TradeFormDialogComponent, type TradeFormDialogData } from './trade-form-dialog.component';
 import { TradeDetailDrawerComponent } from './trade-detail-drawer.component';
 import { SkeletonComponent } from '../../shared/ui/skeleton.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { ImageViewerComponent, type ViewerImage } from '../../shared/image-viewer.component';
 import {
   formatDate,
+  formatDateTime,
   formatDuration,
   formatMonth,
   formatTime,
@@ -52,6 +51,7 @@ interface KpiCounts {
     TradeDetailDrawerComponent,
     SkeletonComponent,
     EmptyStateComponent,
+    ImageViewerComponent,
   ],
   templateUrl: './trades.page.html',
   styleUrl: './trades.page.scss',
@@ -66,7 +66,18 @@ export class TradesPage {
   protected readonly formatTime = formatTime;
   protected readonly formatMonth = formatMonth;
   protected readonly formatDuration = formatDuration;
-  protected readonly Number = Number;
+  protected readonly sparkWidth = 160;
+  protected readonly sparkHeight = 42;
+  /** Alfa en hex que se concatena al color del tipo de trade para el fondo y el borde del tag. */
+  protected readonly setupBgAlpha = '22';
+  protected readonly setupBorderAlpha = '55';
+
+  private readonly emotionClasses: Record<Trade['emotion'], string> = {
+    CONFIDENT: 'emo-confident',
+    MISTAKE: 'emo-mistake',
+    PARAM_ERROR: 'emo-param-error',
+    EMOTIONAL_ERROR: 'emo-emotional-error',
+  };
 
   private readonly trades = inject(TradesStore);
   private readonly accounts = inject(AccountsStore);
@@ -88,9 +99,45 @@ export class TradesPage {
     return this.rows().find((r) => r.id === id) ?? null;
   });
 
+  protected readonly viewerOpen = signal(false);
+  protected readonly viewerIndex = signal(0);
+
+  private readonly selectedImages = computed<TradeMedia[]>(() =>
+    (this.selected()?.media ?? []).filter((m) => m.kind === 'IMAGE'),
+  );
+
+  protected readonly viewerImages = computed<ViewerImage[]>(() =>
+    this.selectedImages().map((m) => ({ url: m.url, alt: 'Adjunto' })),
+  );
+
+  protected readonly viewerCaption = computed(() => {
+    const trade = this.selected();
+    if (!trade) {
+      return '';
+    }
+    return `${trade.instrumentSymbol} · ${formatDateTime(trade.enteredAt)}`;
+  });
+
+  private readonly selectedIndex = computed(() => {
+    const id = this.selectedId();
+    if (id === null) {
+      return -1;
+    }
+    return this.rows().findIndex((r) => r.id === id);
+  });
+
+  protected readonly hasPrevTrade = computed(() => this.selectedIndex() > 0);
+
+  protected readonly hasNextTrade = computed(() => {
+    const index = this.selectedIndex();
+    return index >= 0 && index < this.rows().length - 1;
+  });
+
   protected readonly netSum = computed(() =>
     this.rows().reduce((acc, r) => acc + Number(r.net), 0),
   );
+
+  protected readonly isNetSumPositive = computed(() => this.netSum() >= 0);
 
   protected readonly tradeCount = computed(() => this.rows().length);
 
@@ -265,36 +312,20 @@ export class TradesPage {
     return n.toFixed(2);
   }
 
-  protected emotionBg(e: Trade['emotion']): string {
-    const map: Record<string, string> = {
-      CALM: '#E5E9DC',
-      DISCIPLINED: '#DDE6E0',
-      CONFIDENT: '#E8DFD0',
-      ANXIOUS: '#EEDFD3',
-      FOMO: '#EBD3CC',
-      FRUSTRATED: '#E8CFC9',
-      GREEDY: '#EBD3CC',
-      FEARFUL: '#EEDFD3',
-    };
-    return map[e] ?? '#EAE3D2';
+  protected emotionClass(e: Trade['emotion']): string {
+    return this.emotionClasses[e];
   }
 
   protected firstImage(row: Trade): TradeMedia | null {
-    return row.media.find(m => m.kind === 'IMAGE') ?? null;
+    return row.media.find((m) => m.kind === 'IMAGE') ?? null;
   }
 
-  protected emotionFg(e: Trade['emotion']): string {
-    const map: Record<string, string> = {
-      CALM: '#4A5D3A',
-      DISCIPLINED: '#3D5A48',
-      CONFIDENT: '#6B5638',
-      ANXIOUS: '#7A5538',
-      FOMO: '#8A3F2E',
-      FRUSTRATED: '#8A3F2E',
-      GREEDY: '#8A3F2E',
-      FEARFUL: '#7A5538',
-    };
-    return map[e] ?? '#5B5249';
+  protected isRowNetPositive(row: Trade): boolean {
+    return Number(row.net) >= 0;
+  }
+
+  protected isRowPointsPositive(row: Trade): boolean {
+    return Number(row.pointsTotal) >= 0;
   }
 
   trackById(_idx: number, row: Trade): string {
@@ -322,6 +353,35 @@ export class TradesPage {
 
   closeDetail(): void {
     this.selectedId.set(null);
+    this.closeViewer();
+  }
+
+  openViewer(mediaId: string): void {
+    const index = this.selectedImages().findIndex((m) => m.id === mediaId);
+    this.viewerIndex.set(Math.max(index, 0));
+    this.viewerOpen.set(true);
+  }
+
+  closeViewer(): void {
+    this.viewerOpen.set(false);
+  }
+
+  showPrevTrade(): void {
+    this.stepTrade(-1);
+  }
+
+  showNextTrade(): void {
+    this.stepTrade(1);
+  }
+
+  /** Mueve la selección a la fila contigua de la tabla, respetando filtros y orden activos. */
+  private stepTrade(delta: number): void {
+    const next = this.rows()[this.selectedIndex() + delta];
+    if (!next) {
+      return;
+    }
+    this.selectedId.set(next.id);
+    this.viewerIndex.set(0);
   }
 
   openImport(): void {
@@ -346,7 +406,7 @@ export class TradesPage {
         disableClose: true,
       },
     );
-    ref.closed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
+    ref.closed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
       if (result) {
         this.selectedId.set(result.id);
       }

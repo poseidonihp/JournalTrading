@@ -32,6 +32,8 @@ type NumericInput = string | number | null | undefined;
 
 const secondsPerHour = 3600;
 const secondsPerMinute = 60;
+/** Largo de `YYYY-MM-DD`, el formato que consume `<input type="date">`. */
+const dateInputLength = 10;
 
 export function formatUsd(value: NumericInput): string {
   if (value === null || value === undefined || value === '') {
@@ -66,6 +68,31 @@ export function formatDate(iso: string): string {
 
 export function formatTime(iso: string): string {
   return TIME_ONLY.format(new Date(iso));
+}
+
+/**
+ * Convierte el valor de un `<input type="date">` (`YYYY-MM-DD`) a ISO en
+ * medianoche UTC, para que la fecha no se corra un día según la zona local.
+ * @param {string} value - Valor del input, o vacío
+ * @returns {string | null} ISO en UTC, o null si el input está vacío
+ */
+export function dateInputToIsoUtc(value: string): string | null {
+  if (!value) {
+    return null;
+  }
+  return `${value}T00:00:00.000Z`;
+}
+
+/**
+ * Inverso de `dateInputToIsoUtc`: deja un ISO listo para un `<input type="date">`.
+ * @param {string | null | undefined} iso - Fecha ISO
+ * @returns {string} `YYYY-MM-DD`, o vacío si no hay fecha
+ */
+export function isoToDateInput(iso: string | null | undefined): string {
+  if (!iso) {
+    return '';
+  }
+  return iso.slice(0, dateInputLength);
 }
 
 export function formatMonth(iso: string): string {

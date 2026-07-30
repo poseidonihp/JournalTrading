@@ -1,23 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { LucideAngularModule, X, Calendar, Clock, Pencil, Trash2 } from 'lucide-angular';
-import {
-  enumLabels,
-  type Trade,
-  type TradeMedia,
-} from '@journal/shared-types';
-import {
-  formatDateTime,
-  formatDuration,
-  formatUsd,
-  pnlClass,
-} from '../../shared/format';
-import { ImageViewerComponent, type ViewerImage } from '../../shared/image-viewer.component';
+import { enumLabels, type Trade, type TradeMedia } from '@journal/shared-types';
+import { formatDateTime, formatDuration, formatUsd, pnlClass } from '../../shared/format';
 
 @Component({
   selector: 'app-trade-detail-drawer',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideAngularModule, ImageViewerComponent],
+  imports: [LucideAngularModule],
   templateUrl: './trade-detail-drawer.component.html',
   styleUrl: './trade-detail-drawer.component.scss',
 })
@@ -31,7 +21,6 @@ export class TradeDetailDrawerComponent {
   protected readonly formatDuration = formatDuration;
   protected readonly formatUsd = formatUsd;
   protected readonly pnlClass = pnlClass;
-  protected readonly Number = Number;
 
   protected formatUsdAbs(v: string | number | null | undefined): string {
     if (v === null || v === undefined || v === '') {
@@ -45,28 +34,10 @@ export class TradeDetailDrawerComponent {
   readonly dismissed = output();
   readonly edited = output();
   readonly removed = output();
+  readonly mediaOpened = output<string>();
 
   protected readonly media = computed<TradeMedia[]>(() => this.trade().media ?? []);
-
-  protected readonly viewerImages = computed<ViewerImage[]>(() =>
-    this.media()
-      .filter(m => m.kind === 'IMAGE')
-      .map(m => ({ url: m.url, alt: 'Adjunto' })),
-  );
-
-  protected readonly viewerOpen = signal(false);
-  protected readonly viewerIndex = signal(0);
-
-  protected openViewer(mediaId: string): void {
-    const images = this.media().filter(m => m.kind === 'IMAGE');
-    const idx = images.findIndex(m => m.id === mediaId);
-    this.viewerIndex.set(Math.max(idx, 0));
-    this.viewerOpen.set(true);
-  }
-
-  protected closeViewer(): void {
-    this.viewerOpen.set(false);
-  }
+  protected readonly isNetPositive = computed<boolean>(() => Number(this.trade().net) >= 0);
 
   labelDirection(d: Trade['direction']): string {
     return enumLabels.direction[d];

@@ -52,9 +52,12 @@ export const KpiSummarySchema = z.object({
   winningTrades: z.number().int().nonnegative(),
   losingTrades: z.number().int().nonnegative(),
   breakEvenTrades: z.number().int().nonnegative(),
+  /** Neto de los trades menos el fee de data del rango (ver `dataFees`). */
   netPnl: z.string(),
   grossPnl: z.string(),
   totalCommission: z.string(),
+  /** Fee de data cobrado en el rango, como costo positivo. Ya está en `netPnl`. */
+  dataFees: z.string(),
   winRate: z.number(),
   profitFactor: z.number().nullable(),
   expectancy: z.string(),
@@ -84,8 +87,11 @@ export type CalendarQuery = z.infer<typeof CalendarQuerySchema>;
 
 export const CalendarDaySchema = z.object({
   date: z.string(),
+  /** Neto de los trades del día menos el fee de data que cae en él. */
   net: z.string(),
   tradesCount: z.number().int().nonnegative(),
+  /** Fee de data cobrado ese día, como costo positivo. Ya está en `net`. */
+  fees: z.string(),
   winRate: z.number(),
 });
 export type CalendarDay = z.infer<typeof CalendarDaySchema>;
@@ -180,7 +186,10 @@ export const YearlyMonthSchema = z.object({
   losses: z.number().int().nonnegative(),
   points: z.string(),
   gross: z.string(),
+  /** Neto de los trades del mes menos el fee de data del mes (ver `fees`). */
   net: z.string(),
+  /** Fee de data cobrado en el mes, como costo positivo. Ya está en `net`. */
+  fees: z.string(),
   cumulativeNet: z.string(),
   winRate: z.number(),
   profitFactor: z.number().nullable(),
@@ -193,7 +202,10 @@ export const YearlyTotalsSchema = z.object({
   losses: z.number().int().nonnegative(),
   points: z.string(),
   gross: z.string(),
+  /** Neto de los trades del año menos el fee de data del año (ver `fees`). */
   net: z.string(),
+  /** Fee de data cobrado en el año, como costo positivo. Ya está en `net`. */
+  fees: z.string(),
   winRate: z.number(),
   profitFactor: z.number().nullable(),
 });

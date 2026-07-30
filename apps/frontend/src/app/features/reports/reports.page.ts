@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Loader, TrendingDown } from 'lucide-angular';
+import type { YearlyMonth } from '@journal/shared-types';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { InsightsStore } from '../dashboard/insights.store';
 import { KpiCardsComponent } from '../dashboard/kpi-cards.component';
@@ -17,7 +18,8 @@ import { UnderwaterChartComponent } from './underwater-chart.component';
 import { YearlyCurveComponent } from './yearly-curve.component';
 import { MonthlyBarsComponent } from './monthly-bars.component';
 import { TimePerfChartComponent } from './time-perf-chart.component';
-import { formatUsd, pnlClass } from '../../shared/format';
+import { CapitalSummaryComponent } from '../../shared/ui/capital-summary.component';
+import { formatUsd } from '../../shared/format';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -33,7 +35,7 @@ function currentMonth(): string {
   selector: 'app-reports-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule, KpiCardsComponent, UnderwaterChartComponent, YearlyCurveComponent, MonthlyBarsComponent, TimePerfChartComponent],
+  imports: [FormsModule, LucideAngularModule, CapitalSummaryComponent, KpiCardsComponent, UnderwaterChartComponent, YearlyCurveComponent, MonthlyBarsComponent, TimePerfChartComponent],
   templateUrl: './reports.page.html',
   host: { class: 'block flex-1 min-h-0 overflow-y-auto' },
 })
@@ -178,9 +180,7 @@ export class ReportsPage implements OnInit {
   }
 
   private async bootstrap(): Promise<void> {
-    if (this.accounts.accounts().length === 0) {
-      await this.accounts.load();
-    }
+    await this.accounts.load();
     await Promise.all([
       this.insights.loadAvailableMonths(),
       this.reports.loadDrawdown(undefined),
@@ -233,17 +233,42 @@ export class ReportsPage implements OnInit {
     return value.toFixed(2);
   }
 
+  /** Un mes con fee de data tiene movimiento aunque no se haya operado en él. */
+  protected monthHasData(month: YearlyMonth): boolean {
+    return month.trades > 0 || Number(month.fees) !== 0;
+  }
+
+  /**
+   * Desglose del neto para el tooltip de la celda: aclara que la diferencia
+   * contra el bruto no son sólo comisiones cuando hay fee de data.
+   * @param {{ gross: string; net: string; fees: string }} row - Mes o totales
+   * @returns {string}
+   */
+  protected netTooltip(row: { gross: string; net: string; fees: string }): string {
+    const base = `Bruto ${formatUsd(row.gross)} · Neto ${formatUsd(row.net)}`;
+    if (Number(row.fees) === 0) {
+      return base;
+    }
+    return `${base} · incluye fee de data ${formatUsd(row.fees)}`;
+  }
+
   protected cellTint(value: string | number, trades: number): string {
-    if (trades === 0) return 'transparent';
+    if (trades === 0) {
+      return 'transparent';
+    }
     const n = typeof value === 'string' ? Number(value) : value;
-    if (Number.isNaN(n) || n === 0) return 'transparent';
+    if (Number.isNaN(n) || n === 0) {
+      return 'transparent';
+    }
     return n > 0
       ? 'color-mix(in srgb, var(--qp-sage) 12%, transparent)'
       : 'color-mix(in srgb, var(--qp-clay) 14%, transparent)';
   }
 
   protected winRateBar(winRate: number): { width: string; color: string } {
-    if (!winRate) return { width: '0%', color: 'var(--qp-mute-2)' };
+    if (!winRate) {
+      return { width: '0%', color: 'var(--qp-mute-2)' };
+    }
     const w = Math.max(0, Math.min(100, winRate));
     const color = winRate >= 50 ? 'var(--qp-sage)' : 'var(--qp-clay)';
     return { width: `${w}%`, color };
@@ -269,11 +294,15 @@ export class ReportsPage implements OnInit {
   private static formatDate(value: string, granularity: 'trade' | 'day'): string {
     if (granularity === 'day') {
       const [y, m, d] = value.split('-');
-      if (!y || !m || !d) return value;
+      if (!y || !m || !d) {
+        return value;
+      }
       return `${d}/${m}/${y}`;
     }
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
     return date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
   }
 }

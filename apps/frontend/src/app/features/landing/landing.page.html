@@ -1,5 +1,5 @@
 <header class="landing-header" data-test="div-header-page">
-  <div class="serif text-[24px] leading-none">Journal</div>
+  <journal-brand-mark class="h-8 w-8" />
   <div class="flex items-center gap-3">
     <button
       type="button"
@@ -24,7 +24,9 @@
   <div class="hero-inner">
     <div class="hero-copy">
       <p class="uplabel rise rise-1">Diario de trading · Futuros</p>
-      <h1 class="serif hero-title rise rise-2">Journal</h1>
+      <h1 class="hero-title rise rise-2">
+        <journal-brand-mark class="hero-brand" />
+      </h1>
       <p class="hero-lead rise rise-3">
         Registra cada operación, mide lo que de verdad funciona y deja de repetir los mismos
         errores. Tu proceso completo, sin hojas de cálculo.
@@ -96,6 +98,6 @@
 </section>
 
 <footer class="landing-footer">
-  <span class="uplabel">Journal</span>
+  <journal-brand-mark class="h-6 w-6" />
   <a routerLink="/login" class="uplabel footer-link">Iniciar sesión</a>
 </footer>

@@ -1,0 +1,27 @@
+<div class="capital-card" data-test="div-capital-panel">
+  <div class="capital-main">
+    <div class="uplabel">Capital actual</div>
+    <div class="serif capital-value" [title]="scopeTooltip">
+      {{ formatUsd(current()) }}
+    </div>
+    <div class="capital-scope">{{ scopeLabel() }} · todo el histórico</div>
+  </div>
+  <div class="capital-stats">
+    <div class="capital-stat">
+      <div class="uplabel">Capital aportado</div>
+      <div class="capital-stat-value" [title]="contributedTooltip">
+        {{ formatUsd(contributed()) }}
+      </div>
+    </div>
+    <div class="capital-stat">
+      <div class="uplabel">Variación</div>
+      <div
+        class="capital-stat-value capital-change"
+        [class.capital-change-up]="change() > 0"
+        [class.capital-change-down]="change() < 0"
+      >
+        {{ changeLabel() }}
+      </div>
+    </div>
+  </div>
+</div>

@@ -25,11 +25,12 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  accounts        Account[]
-  trades          Trade[]
-  tradeTypes      TradeType[]
-  trackerAccounts TrackerAccount[]
-  refreshTokens   RefreshToken[]
+  accounts         Account[]
+  trades           Trade[]
+  tradeTypes       TradeType[]
+  trackerAccounts  TrackerAccount[]
+  refreshTokens    RefreshToken[]
+  capitalMovements CapitalMovement[]
 
   @@map("users")
 }
@@ -64,15 +65,18 @@ model RefreshToken {
 // =====================================================================
 
 model Account {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
   name           String
   broker         String?
-  currency       String   @default("USD")
-  initialBalance Decimal  @default(0) @map("initial_balance") @db.Decimal(18, 2)
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  currency       String    @default("USD")
+  initialBalance Decimal   @default(0) @map("initial_balance") @db.Decimal(18, 2)
+  // Fecha del capital inicial. Los aportes y retiros posteriores viven en
+  // capital_movements; este campo es sólo el saldo de apertura de la cuenta.
+  initialBalanceAt DateTime? @map("initial_balance_at") @db.Timestamptz(3)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   // Fee opcional por data en tiempo real (Rithmic, CQG, etc.)
   dataFeeEnabled       Boolean           @default(false) @map("data_fee_enabled")
@@ -81,9 +85,10 @@ model Account {
   dataFeeNextChargeAt  DateTime?         @map("data_fee_next_charge_at") @db.Timestamptz(3)
   dataFeeLastChargedAt DateTime?         @map("data_fee_last_charged_at") @db.Timestamptz(3)
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trades         Trade[]
-  dataFeeCharges DataFeeCharge[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades           Trade[]
+  dataFeeCharges   DataFeeCharge[]
+  capitalMovements CapitalMovement[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -108,6 +113,33 @@ model DataFeeCharge {
 
   @@index([accountId, chargedAt])
   @@map("data_fee_charges")
+}
+
+// Aportes y retiros de capital con fecha. Permiten inyectar dinero en agosto o
+// al cambio de año sin inflar el capital inicial, de modo que el rendimiento se
+// mida contra el capital realmente aportado.
+enum CapitalMovementType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+model CapitalMovement {
+  id         String              @id @default(uuid()) @db.Uuid
+  userId     String              @map("user_id") @db.Uuid
+  accountId  String              @map("account_id") @db.Uuid
+  type       CapitalMovementType
+  // Siempre positivo: el signo lo determina `type`.
+  amount     Decimal             @db.Decimal(18, 2)
+  occurredAt DateTime            @map("occurred_at") @db.Timestamptz(3)
+  note       String?
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, occurredAt])
+  @@index([userId])
+  @@map("capital_movements")
 }
 
 // =====================================================================

@@ -68,6 +68,10 @@ export class KpiCardsComponent {
 
   protected netTooltip(kpis: KpiSummary): string {
     const gross = formatUsd(kpis.grossPnl);
-    return `Neto = bruto ${gross} menos comisiones ${formatUsd(kpis.totalCommission)}`;
+    const base = `Neto = bruto ${gross} menos comisiones ${formatUsd(kpis.totalCommission)}`;
+    if (Number(kpis.dataFees) === 0) {
+      return base;
+    }
+    return `${base} menos fee de data ${formatUsd(kpis.dataFees)}`;
   }
 }

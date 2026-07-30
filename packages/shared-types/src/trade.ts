@@ -7,7 +7,6 @@ import {
   TradeSourceEnum,
 } from './enums';
 
-
 const MAX_ENTRY_REASON_CHARS = 2000;
 const MAX_NOTES_CHARS = 10_000;
 const DEFAULT_PAGE_SIZE = 50;
@@ -70,10 +69,11 @@ export type Trade = z.infer<typeof TradeSchema>;
 // Create / Update Trade
 // ---------------------------------------------------------------------------
 
-const decimalString = z
+/** Decimal que viaja como string para no perder precisión. Acepta number y lo normaliza. */
+export const decimalString = z
   .union([z.string(), z.number()])
-  .transform(v => (typeof v === 'number' ? v.toString() : v))
-  .refine(v => /^-?\d+(\.\d+)?$/.test(v), { message: 'Número inválido' });
+  .transform((v) => (typeof v === 'number' ? v.toString() : v))
+  .refine((v) => /^-?\d+(\.\d+)?$/.test(v), { message: 'Número inválido' });
 
 const CreateTradeBaseSchema = z.object({
   accountId: z.string().uuid(),
@@ -94,7 +94,7 @@ const CreateTradeBaseSchema = z.object({
 });
 
 export const CreateTradeSchema = CreateTradeBaseSchema.refine(
-  d => new Date(d.exitedAt).getTime() >= new Date(d.enteredAt).getTime(),
+  (d) => new Date(d.exitedAt).getTime() >= new Date(d.enteredAt).getTime(),
   {
     message: 'exitedAt debe ser posterior o igual a enteredAt',
     path: ['exitedAt'],
@@ -145,6 +145,8 @@ export const CreateAccountSchema = z.object({
   broker: z.string().max(MAX_ACCOUNT_NAME_CHARS).optional().nullable(),
   currency: z.string().length(CURRENCY_LENGTH).default('USD'),
   initialBalance: decimalString.default('0'),
+  /** Fecha en la que se depositó el capital inicial (ISO, medianoche UTC). */
+  initialBalanceAt: z.string().datetime().nullable().optional(),
   isActive: z.boolean().default(true),
   dataFeeEnabled: z.boolean().default(false),
   dataFeeAmount: decimalString.default('0'),

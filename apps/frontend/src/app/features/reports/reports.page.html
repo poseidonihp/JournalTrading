@@ -62,7 +62,9 @@
                 <th class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Neto</th>
                 <th class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Acum.</th>
                 <th class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Win&nbsp;%</th>
-                <th class="py-2 pl-2 pr-4 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">PF</th>
+                <th class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">PF</th>
+                <th class="py-2 pl-2 pr-4 text-right text-[10px] font-semibold uppercase tracking-wide border-b pct-head"
+                  title="Neto del periodo sobre el capital aportado">%&nbsp;Cap.</th>
               </tr>
             </thead>
             <tbody>
@@ -81,12 +83,16 @@
                 <td class="py-2 px-2 text-center font-semibold whitespace-nowrap" [style.color]="winRateBar(y.totals.winRate).color">
                   {{ formatPct(y.totals.winRate) }}
                 </td>
-                <td class="py-2 pl-2 pr-4 text-center">
+                <td class="py-2 px-2 text-center">
                   <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-semibold min-w-[38px]"
                     [style.background]="pfBadgeStyle(y.totals.profitFactor).bg"
                     [style.color]="pfBadgeStyle(y.totals.profitFactor).color">
                     {{ formatPf(y.totals.profitFactor) }}
                   </span>
+                </td>
+                <td class="py-2 pl-2 pr-4 text-right font-semibold whitespace-nowrap pct-cell"
+                  [class]="capitalPctClass(y.totals.net)">
+                  {{ formatCapitalPct(y.totals.net) }}
                 </td>
               </tr>
               @for (m of y.months; track m.month; let idx = $index) {
@@ -128,7 +134,7 @@
                       [style.color]="m.trades > 0 ? winRateBar(m.winRate).color : 'var(--qp-mute-2)'">
                     {{ m.trades > 0 ? formatPct(m.winRate) : '—' }}
                   </td>
-                  <td class="py-1.5 pl-2 pr-4 text-center border-b" style="border-color: var(--qp-line);">
+                  <td class="py-1.5 px-2 text-center border-b" style="border-color: var(--qp-line);">
                     @if (m.trades > 0) {
                       <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-medium min-w-[38px]"
                         [style.background]="pfBadgeStyle(m.profitFactor).bg"
@@ -138,6 +144,10 @@
                     } @else {
                       <span style="color: var(--qp-mute-2);">—</span>
                     }
+                  </td>
+                  <td class="py-1.5 pl-2 pr-4 text-right border-b font-medium whitespace-nowrap pct-cell"
+                    [class]="capitalPctClass(m.net)">
+                    {{ monthHasData(m) ? formatCapitalPct(m.net) : '—' }}
                   </td>
                 </tr>
               }

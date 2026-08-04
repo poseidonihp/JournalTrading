@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Loader, TrendingDown } from 'lucide-angular';
-import type { YearlyMonth } from '@journal/shared-types';
+import type { Account, YearlyMonth } from '@journal/shared-types';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { InsightsStore } from '../dashboard/insights.store';
 import { KpiCardsComponent } from '../dashboard/kpi-cards.component';
@@ -26,6 +26,8 @@ const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+const percentFactor = 100;
+
 function currentMonth(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -37,6 +39,7 @@ function currentMonth(): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, LucideAngularModule, CapitalSummaryComponent, KpiCardsComponent, UnderwaterChartComponent, YearlyCurveComponent, MonthlyBarsComponent, TimePerfChartComponent],
   templateUrl: './reports.page.html',
+  styleUrl: './reports.page.scss',
   host: { class: 'block flex-1 min-h-0 overflow-y-auto' },
 })
 export class ReportsPage implements OnInit {
@@ -109,6 +112,24 @@ export class ReportsPage implements OnInit {
 
   protected readonly yearMonths = computed(() => this.yearly()?.months ?? []);
   protected readonly yearTotals = computed(() => this.yearly()?.totals ?? null);
+
+  /** Cuentas que entran en el capital de referencia: la seleccionada, o todas en modo «ALL». */
+  private readonly capitalScope = computed<Account[]>(() => {
+    if (this.accounts.selectedId() === 'ALL') {
+      return this.accounts.accounts();
+    }
+    const selected = this.accounts.selected();
+    return selected ? [selected] : [];
+  });
+
+  /**
+   * Capital aportado (inicial + aportes − retiros) del alcance de cuentas actual.
+   * Es la misma base que usa `journal-capital-summary`, así que los porcentajes
+   * de la tabla son consistentes con la variación que se muestra arriba.
+   */
+  private readonly contributedCapital = computed(() =>
+    this.capitalScope().reduce((total, account) => total + Number(account.contributedCapital), 0),
+  );
 
   protected readonly series = computed(() => {
     const r = this.report();
@@ -231,6 +252,37 @@ export class ReportsPage implements OnInit {
   protected formatPf(value: number | null): string {
     if (value === null || value === 0) return '—';
     return value.toFixed(2);
+  }
+
+  /**
+   * Porcentaje que representa el neto de un mes (o del año) sobre el capital
+   * aportado: negativo cuando el periodo perdió dinero.
+   * @param {string} net - Neto del periodo
+   * @returns {string}
+   */
+  protected formatCapitalPct(net: string): string {
+    const capital = this.contributedCapital();
+    const value = Number(net);
+    if (capital === 0 || Number.isNaN(value) || value === 0) {
+      return '—';
+    }
+    const percent = (value / capital) * percentFactor;
+    const sign = percent > 0 ? '+' : '';
+    return `${sign}${percent.toFixed(2)}%`;
+  }
+
+  /**
+   * Clase de color para la celda de porcentaje sobre capital.
+   * @param {string} net - Neto del periodo
+   * @returns {string}
+   */
+  protected capitalPctClass(net: string): string {
+    const capital = this.contributedCapital();
+    const value = Number(net);
+    if (capital === 0 || Number.isNaN(value) || value === 0) {
+      return '';
+    }
+    return value > 0 ? 'positive' : 'negative';
   }
 
   /** Un mes con fee de data tiene movimiento aunque no se haya operado en él. */

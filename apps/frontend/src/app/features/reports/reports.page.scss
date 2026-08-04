@@ -1,0 +1,16 @@
+.pct-head {
+  border-color: var(--qp-line-strong);
+}
+
+.pct-cell {
+  border-color: var(--qp-line);
+  color: var(--qp-mute-2);
+
+  &.positive {
+    color: var(--qp-sage);
+  }
+
+  &.negative {
+    color: var(--qp-clay);
+  }
+}

@@ -29,12 +29,13 @@ function pad(n: number): string {
   return n.toString().padStart(2, '0');
 }
 
+// Componentes en UTC: los timestamps de trade son hora de pared UTC, igual que en la UI.
 function formatDate(iso: string): { month: string; day: string; time: string } {
   const d = new Date(iso);
   return {
-    month: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`,
-    day: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    month: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`,
+    day: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`,
+    time: `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`,
   };
 }
 

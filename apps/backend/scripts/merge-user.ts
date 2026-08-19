@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { pgPoolConfig } from '../src/prisma/pg-connection';
 import { hash } from 'bcryptjs';
 
 const defaultSourceEmail = 'dev@journal.local';
@@ -49,7 +50,7 @@ function resolveDatabaseUrl(): string | null {
 
 const databaseUrl = resolveDatabaseUrl();
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: databaseUrl ?? undefined }),
+  adapter: new PrismaPg(pgPoolConfig(databaseUrl ?? undefined)),
 });
 
 interface ICliOptions {

@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { pgPoolConfig } from '../src/prisma/pg-connection';
 import {
   PrismaClient,
   InstrumentCategory,
@@ -16,7 +17,7 @@ if (existsSync(envPath)) {
 }
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env['DATABASE_URL'] }),
+  adapter: new PrismaPg(pgPoolConfig(process.env['DATABASE_URL'])),
 });
 
 const SEED_USER_EMAIL = process.env.SEED_USER_EMAIL ?? 'dev@journal.local';

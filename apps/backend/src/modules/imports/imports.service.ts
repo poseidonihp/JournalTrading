@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../prisma/client';
 import type { ImportBatch, ImportResult } from '@journal/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { parseNtCsv, type ParseError, type ParsedTradeRow } from './nt-csv.parser';

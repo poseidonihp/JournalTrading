@@ -77,7 +77,7 @@ async function bootstrap(): Promise<void> {
     decorateReply: false,
   });
 
-  app.setGlobalPrefix('api', { exclude: ['health', 'health/db', 'uploads/(.*)'] });
+  app.setGlobalPrefix('api', { exclude: ['health', 'health/db', 'uploads/{*path}'] });
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),
     credentials: true,

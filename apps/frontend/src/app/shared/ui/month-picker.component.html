@@ -1,0 +1,34 @@
+<div class="month-picker">
+  <label class="month-picker-field">
+    <span class="sr-only">Año</span>
+    <select
+      class="month-picker-select year"
+      [ngModel]="yearValue()"
+      (ngModelChange)="onYearChange($event)"
+    >
+      @if (allowAllYears()) {
+        <option value="">{{ allYearsLabel() }}</option>
+      }
+      @for (y of years(); track y) {
+        <option [value]="y">{{ y }}</option>
+      }
+    </select>
+  </label>
+
+  <label class="month-picker-field">
+    <span class="sr-only">Mes</span>
+    <select
+      class="month-picker-select month"
+      [ngModel]="monthValue()"
+      [disabled]="monthDisabled()"
+      (ngModelChange)="onMonthChange($event)"
+    >
+      @if (allowAllMonths()) {
+        <option value="">{{ allMonthsLabel() }}</option>
+      }
+      @for (m of months(); track m.value) {
+        <option [value]="m.value">{{ m.label }}</option>
+      }
+    </select>
+  </label>
+</div>

@@ -30,30 +30,3 @@
   border: 1px solid var(--qp-line);
   border-radius: 12px;
 }
-
-.month-select {
-  appearance: none;
-  background: var(--qp-bg-soft);
-  border: 1px solid var(--qp-line);
-  color: var(--qp-ink);
-  padding: 6px 28px 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  min-width: 180px;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 12px;
-  transition: border-color 120ms ease;
-
-  &:hover {
-    border-color: var(--qp-line-strong);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--qp-ink);
-  }
-}

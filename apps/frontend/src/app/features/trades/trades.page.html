@@ -63,8 +63,9 @@
     <div class="kpi-cell">
       <span class="uplabel">Win rate</span>
       <span class="kpi-value">{{ winRate() }}<span class="kpi-unit">%</span></span>
-      <span class="kpi-note">
-        {{ kpiCounts().winners }} ganadores · {{ kpiCounts().losers }} perdedores
+      <span class="kpi-note" [title]="breakEvenHint">
+        {{ kpiCounts().winners }} ganadores · {{ kpiCounts().losers }} perdedores ·
+        {{ kpiCounts().breakEven }} BE
       </span>
     </div>
 
@@ -131,11 +132,9 @@
       } @else {
         <div class="flex-1 overflow-auto">
           @for (row of rows(); track row.id; let i = $index) {
-            <div
+            <button
+              type="button"
               (click)="selectTrade(row)"
-              (keydown.enter)="selectTrade(row)"
-              tabindex="0"
-              role="button"
               [attr.aria-label]="rowAriaLabel(row)"
               class="row"
               [class.selected]="row.id === selectedId()"
@@ -190,7 +189,7 @@
               >
                 {{ isRowNetPositive(row) ? '+' : '−' }}{{ formatUsdAbs(row.net) }}
               </span>
-            </div>
+            </button>
           }
         </div>
       }

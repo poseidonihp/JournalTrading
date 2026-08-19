@@ -7,6 +7,14 @@ import type {
 } from '@journal/shared-types';
 import { ApiClient } from '../../core/http/api.client';
 import { AccountsStore } from '../../core/accounts/accounts.store';
+import { yearRange } from '../../shared/months';
+
+/** Rango de la consulta de drawdown: un mes, un año completo, o todo el histórico. */
+export interface IDrawdownRange {
+  month?: string;
+  from?: string;
+  to?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ReportsStore {
@@ -33,15 +41,12 @@ export class ReportsStore {
   readonly yearKpisLoading = this._yearKpisLoading.asReadonly();
   readonly error = this._error.asReadonly();
 
-  async loadDrawdown(month?: string): Promise<void> {
+  async loadDrawdown(range: IDrawdownRange = {}): Promise<void> {
     this._loading.set(true);
     this._error.set(null);
     try {
       const accountId = this.activeAccountId();
-      const params: Record<string, string | undefined> = { accountId };
-      if (month) {
-        params['month'] = month;
-      }
+      const params: Record<string, string | undefined> = { accountId, ...range };
       const report = await this.api.get<DrawdownReport>('insights/drawdown', params);
       this._drawdown.set(report);
     } catch (err) {
@@ -73,8 +78,7 @@ export class ReportsStore {
       const accountId = this.activeAccountId();
       const summary = await this.api.get<KpiSummary>('insights/kpis', {
         accountId,
-        from: `${year}-01-01T00:00:00.000Z`,
-        to: `${year}-12-31T23:59:59.999Z`,
+        ...yearRange(year),
       });
       this._yearKpis.set(summary);
     } catch (err) {

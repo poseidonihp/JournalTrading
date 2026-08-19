@@ -38,6 +38,20 @@ const DONUT_CIRC = 2 * Math.PI * DONUT_R;
           transform="rotate(-90 30 30)"
         />
       }
+      @if (model().beDash) {
+        <circle
+          cx="30"
+          cy="30"
+          r="22"
+          fill="none"
+          stroke="var(--qp-mute-2)"
+          stroke-width="7"
+          stroke-linecap="round"
+          [attr.stroke-dasharray]="model().beDash"
+          [attr.stroke-dashoffset]="model().beOffset"
+          transform="rotate(-90 30 30)"
+        />
+      }
     </svg>
   `,
   styles: [`.mini { width: 54px; height: 54px; display: block; }`],
@@ -53,15 +67,18 @@ export class MiniDonutComponent {
     const be = this.breakEven();
     const total = w + l + be;
     if (total === 0) {
-      return { winDash: '', winOffset: 0, lossDash: '', lossOffset: 0 };
+      return { winDash: '', winOffset: 0, lossDash: '', lossOffset: 0, beDash: '', beOffset: 0 };
     }
     const winLen = (w / total) * DONUT_CIRC;
     const lossLen = (l / total) * DONUT_CIRC;
+    const beLen = (be / total) * DONUT_CIRC;
     return {
       winDash: `${winLen.toFixed(2)} ${(DONUT_CIRC - winLen).toFixed(2)}`,
       winOffset: 0,
       lossDash: `${lossLen.toFixed(2)} ${(DONUT_CIRC - lossLen).toFixed(2)}`,
       lossOffset: -winLen,
+      beDash: `${beLen.toFixed(2)} ${(DONUT_CIRC - beLen).toFixed(2)}`,
+      beOffset: -(winLen + lossLen),
     };
   });
 }
@@ -74,6 +91,9 @@ export class MiniDonutComponent {
     <div class="track">
       <div class="pos" [style.flex]="model().posFlex"></div>
       <div class="neg" [style.flex]="model().negFlex"></div>
+      @if (model().neutralFlex) {
+        <div class="neu" [style.flex]="model().neutralFlex"></div>
+      }
     </div>
   `,
   styles: [
@@ -89,21 +109,25 @@ export class MiniDonutComponent {
       }
       .pos { background: var(--qp-sage); min-width: 0; }
       .neg { background: var(--qp-clay); min-width: 0; }
+      .neu { background: var(--qp-mute-2); min-width: 0; }
     `,
   ],
 })
 export class MiniDivergeComponent {
   readonly positive = input.required<number>();
   readonly negative = input.required<number>();
+  /** Tercer tramo neutro, para los break-even. Sin valor, la barra queda como antes. */
+  readonly neutral = input<number>(0);
 
   protected readonly model = computed(() => {
     const p = Math.abs(this.positive());
     const n = Math.abs(this.negative());
-    const total = p + n;
+    const u = Math.abs(this.neutral());
+    const total = p + n + u;
     if (total === 0) {
-      return { posFlex: 1, negFlex: 1 };
+      return { posFlex: 1, negFlex: 1, neutralFlex: 0 };
     }
-    return { posFlex: p / total, negFlex: n / total };
+    return { posFlex: p / total, negFlex: n / total, neutralFlex: u / total };
   });
 }
 

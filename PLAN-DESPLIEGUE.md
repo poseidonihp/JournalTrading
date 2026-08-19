@@ -2,7 +2,7 @@
 
 ## Contexto
 
-El proyecto (Angular 21 SPA + NestJS/Fastify + PostgreSQL 16, monorepo pnpm/Turbo) está listo para
+El proyecto (Angular 22 SPA + NestJS 11/Fastify 5 + PostgreSQL 16, monorepo pnpm/Turbo) está listo para
 desarrollo local pero **no tiene ninguna infraestructura de despliegue** (cero Dockerfiles, cero
 reverse proxy, cero CI de deploy, ni script de migración de producción). El objetivo es publicarlo en
 el mini PC casero (donde ya corren Sonarr/Prowlarr) bajo `journal.poseidonihp.com`, exponiéndolo con el
@@ -101,7 +101,7 @@ Mínimos y quirúrgicos:
 ### B2. Instalar dependencias y compilar (en el mini PC)
 ```powershell
 pnpm install --frozen-lockfile
-pnpm --filter @journal/backend prisma:generate     # genera el client de Prisma (binaryTarget windows)
+pnpm --filter @journal/backend prisma:generate     # genera el client en src/generated (ya incluido en el build)
 pnpm build                                          # turbo: shared-types → backend → frontend
 ```
 Produce: `packages/shared-types/dist`, `apps/backend/dist/main.js`, `apps/frontend/dist/frontend/browser/`.

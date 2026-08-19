@@ -14,6 +14,7 @@ import { AccountsStore } from '../../core/accounts/accounts.store';
 import { ApiClient } from '../../core/http/api.client';
 import { ConfirmService } from '../../core/confirm/confirm.service';
 import { dateInputToIsoUtc, isoToDateInput } from '../../shared/format';
+import { monthKey, monthYearLabel } from '../../shared/months';
 import { CapitalMovementsDialogComponent } from './capital-movements-dialog.component';
 
 const FREQUENCIES: DataFeeFrequency[] = ['MONTHLY', 'QUARTERLY', 'ANNUAL'];
@@ -35,12 +36,6 @@ const pastPeriodsOffered: Record<DataFeeFrequency, number> = {
   QUARTERLY: 8,
   ANNUAL: 5,
 };
-
-const periodFormatter = new Intl.DateTimeFormat('es', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 interface IFeeStartOption {
   value: string;
@@ -200,7 +195,7 @@ export class CapitalPage implements OnInit {
     if (frequency === 'ANNUAL') {
       return String(start.getUTCFullYear());
     }
-    return periodFormatter.format(start);
+    return monthYearLabel(monthKey(start.getUTCFullYear(), start.getUTCMonth() + 1));
   }
 
   protected cancelCreate(): void {

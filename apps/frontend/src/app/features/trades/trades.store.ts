@@ -14,12 +14,26 @@ import { NotificationService } from '../../core/notifications/notification.servi
 export type ClientTradeFilters = Partial<
   Pick<
     TradeFilters,
-    'instrumentId' | 'tradeTypeId' | 'emotion' | 'direction' | 'exitReason' | 'month'
+    | 'instrumentId'
+    | 'tradeTypeId'
+    | 'emotion'
+    | 'direction'
+    | 'exitReason'
+    | 'month'
+    | 'from'
+    | 'to'
   >
 > & {
   page?: number;
   pageSize?: number;
 };
+
+/** Periodo del listado: un mes exacto, un año completo (`from`/`to`), o nada. */
+export interface ITradePeriod {
+  month?: string;
+  from?: string;
+  to?: string;
+}
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -93,6 +107,17 @@ export class TradesStore {
 
   setFilter<K extends keyof ClientTradeFilters>(key: K, value: ClientTradeFilters[K]): void {
     this._filters.update((curr) => ({ ...curr, [key]: value, page: 1 }));
+  }
+
+  /** Reemplaza mes y rango a la vez: son excluyentes, no se pueden fijar por separado. */
+  setPeriod(period: ITradePeriod): void {
+    this._filters.update(curr => ({
+      ...curr,
+      month: period.month,
+      from: period.from,
+      to: period.to,
+      page: 1,
+    }));
   }
 
   clearFilters(): void {
@@ -179,6 +204,8 @@ export class TradesStore {
       direction: f.direction,
       exitReason: f.exitReason,
       month: f.month,
+      from: f.from,
+      to: f.to,
       page: f.page,
       pageSize: f.pageSize,
     };

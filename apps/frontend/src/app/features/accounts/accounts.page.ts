@@ -345,6 +345,8 @@ export class AccountsPage implements OnInit {
     if (!acc) {
       return;
     }
+    // El <dialog> nativo vive en el top layer y taparía el confirm; se cierra antes de preguntar.
+    this.closeActionModal();
     const confirmed = await this.confirm.ask({
       title: 'Eliminar cuenta',
       message: `¿Eliminar la cuenta ${acc.name}?`,
@@ -358,7 +360,6 @@ export class AccountsPage implements OnInit {
       await this.api.delete<void>(`tracker-accounts/${acc.id}`);
       this.accounts.update(list => list.filter(a => a.id !== acc.id));
       this.selectedAccount.set(null);
-      this.closeActionModal();
     } catch (e) {
       this.error.set(ApiClient.messageFromError(e));
     }

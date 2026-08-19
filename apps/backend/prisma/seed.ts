@@ -1,12 +1,23 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { PrismaPg } from '@prisma/adapter-pg';
 import {
   PrismaClient,
   InstrumentCategory,
   TrackerAccountStatus,
   TrackerAccountType,
-} from '@prisma/client';
+} from '../src/generated/prisma/client';
 import * as bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Prisma 7 ya no carga .env automáticamente y el seed corre por tsx, no por el CLI.
+const envPath = join(__dirname, '..', '.env');
+if (existsSync(envPath)) {
+  process.loadEnvFile(envPath);
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env['DATABASE_URL'] }),
+});
 
 const SEED_USER_EMAIL = process.env.SEED_USER_EMAIL ?? 'dev@journal.local';
 const SEED_USER_PASSWORD = process.env.SEED_USER_PASSWORD ?? 'journal123';

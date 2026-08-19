@@ -53,3 +53,6 @@ images/
 
 # Prisma
 apps/backend/prisma/migrations/dev.db*
+
+# Cliente que Prisma 7 genera dentro de src (ver generator output en schema.prisma)
+apps/backend/src/generated/

@@ -1,33 +1,10 @@
 /**
  * Script de mantenimiento (uso puntual, no forma parte del runtime).
- *
- * Mueve TODOS los datos de un usuario origen a un usuario destino, borra el
- * usuario origen y opcionalmente crea un usuario administrador.
- *
- * Pensado para consolidar el usuario semilla `dev@journal.local` en la cuenta
- * real después de un despliegue. Por defecto sólo simula (dry-run): hay que
- * pasar `--apply` para escribir en la base.
- *
- * Uso:
- *   tsx scripts/merge-user.ts --to juestalrod@outlook.com
- *   tsx scripts/merge-user.ts --to juestalrod@outlook.com --apply
- *   ADMIN_PASSWORD=... tsx scripts/merge-user.ts --to juestalrod@outlook.com \
- *     --create-admin admin@journal.local --admin-name 'Admin' --apply
- *
- * Flags:
- *   --from <email>          Usuario origen (default: dev@journal.local)
- *   --to <email>            Usuario destino (obligatorio)
- *   --create-admin <email>  Crea además este usuario; password en ADMIN_PASSWORD
- *   --admin-name <nombre>   displayName del admin (default: Admin)
- *   --apply                 Ejecuta los cambios (sin este flag no escribe nada)
- *
- * Conexión: usa `DATABASE_URL` del entorno si está definida; si no, la lee de
- * `apps/backend/.env`. El cliente de Prisma no carga `.env` de forma fiable
- * fuera del CLI, así que la URL se resuelve acá y se le pasa explícitamente.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../src/generated/prisma/client';
 import { hash } from 'bcryptjs';
 
 const defaultSourceEmail = 'dev@journal.local';
@@ -71,7 +48,9 @@ function resolveDatabaseUrl(): string | null {
 }
 
 const databaseUrl = resolveDatabaseUrl();
-const prisma = new PrismaClient({ datasourceUrl: databaseUrl ?? undefined });
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: databaseUrl ?? undefined }),
+});
 
 interface ICliOptions {
   fromEmail: string;

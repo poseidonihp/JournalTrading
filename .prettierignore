@@ -6,3 +6,6 @@ build
 coverage
 pnpm-lock.yaml
 *.tsbuildinfo
+
+# Cliente que genera Prisma (schema.prisma -> generator output)
+apps/backend/src/generated

@@ -2,7 +2,7 @@
   "name": "journal",
   "version": "0.1.0",
   "private": true,
-  "description": "Trading journal personal — Angular 21 + NestJS + PostgreSQL",
+  "description": "Trading journal personal — Angular 22 + NestJS + PostgreSQL",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=22"
@@ -15,8 +15,13 @@
     "format:check": "prettier --check \"**/*.{ts,js,json,md,html,css}\""
   },
   "devDependencies": {
-    "prettier": "^3.4.2",
-    "turbo": "^2.3.3",
-    "typescript": "^5.7.2"
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.11",
+    "typescript": "~6.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "fastify": "^5.12.1"
+    }
   }
 }

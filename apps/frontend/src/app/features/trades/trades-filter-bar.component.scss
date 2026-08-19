@@ -21,19 +21,6 @@
 .chip-select:hover {
   background-color: var(--qp-bg-soft);
 }
-.chip-month {
-  padding: 6px 12px;
-  border: 1px solid var(--qp-line-strong);
-  border-radius: 999px;
-  font-size: 12px;
-  background: transparent;
-  color: var(--qp-ink);
-}
-.chip-month.active {
-  background: var(--qp-ink);
-  color: var(--qp-bg);
-  border-color: var(--qp-ink);
-}
 .clear-btn {
   padding: 6px 10px;
   border: 1px solid var(--qp-line-strong);

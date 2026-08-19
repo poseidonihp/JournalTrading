@@ -5,6 +5,9 @@ import type { Session } from '@journal/shared-types';
 import { SessionsStore } from '../../core/sessions/sessions.store';
 import { ApiClient } from '../../core/http/api.client';
 import { ConfirmService } from '../../core/confirm/confirm.service';
+import { monthYearLabel, shiftMonthKey } from '../../shared/months';
+
+const monthKeyLength = 7;
 
 function todayIso(): string {
   const d = new Date();
@@ -12,13 +15,7 @@ function todayIso(): string {
 }
 
 function monthFromDate(date: string): string {
-  return date.slice(0, 7);
-}
-
-function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split('-').map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  return date.slice(0, monthKeyLength);
 }
 
 @Component({
@@ -54,13 +51,7 @@ export class NotebookPage {
     return this.sessions().find(s => s.date === d) ?? null;
   });
 
-  protected readonly monthLabel = computed(() => {
-    const [y, m] = this.month().split('-').map(Number);
-    return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('es-CO', {
-      month: 'long',
-      year: 'numeric',
-    });
-  });
+  protected readonly monthLabel = computed(() => monthYearLabel(this.month()));
 
   constructor() {
     void this.bootstrap();
@@ -72,12 +63,12 @@ export class NotebookPage {
   }
 
   protected async prevMonth(): Promise<void> {
-    this.month.update(m => shiftMonth(m, -1));
+    this.month.update(month => shiftMonthKey(month, -1));
     await this.store.loadMonth(this.month());
   }
 
   protected async nextMonth(): Promise<void> {
-    this.month.update(m => shiftMonth(m, 1));
+    this.month.update(month => shiftMonthKey(month, 1));
     await this.store.loadMonth(this.month());
   }
 

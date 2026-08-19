@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { YearlyMonth } from '@journal/shared-types';
+import { monthNameShort } from '../../shared/months';
 
-const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const ROW_HEIGHT = 22;
 const BAR_HEIGHT = 12;
 const LABEL_W = 36;
@@ -95,7 +95,7 @@ export class MonthlyBarsComponent {
       const positive = v >= 0;
       const w = scale(v);
       const x = positive ? zeroX : zeroX - w;
-      const label = MONTH_LABELS[m.month - 1] ?? '';
+      const label = monthNameShort(m.month);
       const valueLabel = MonthlyBarsComponent.formatValue(v, metric);
       return {
         label,

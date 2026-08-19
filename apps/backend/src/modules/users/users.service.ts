@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import type { User as PrismaUser } from '@prisma/client';
+import { Prisma } from '../../prisma/client';
+import type { User as PrismaUser } from '../../prisma/client';
 import * as bcrypt from 'bcryptjs';
 import type { User } from '@journal/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';

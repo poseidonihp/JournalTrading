@@ -4,7 +4,7 @@ import {
   DataFeeFrequency,
   Prisma,
   type Account as PrismaAccount,
-} from '@prisma/client';
+} from '../../prisma/client';
 import type { Account, CreateAccountDto, UpdateAccountDto } from '@journal/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
 

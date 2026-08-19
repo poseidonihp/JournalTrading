@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, type Session as PrismaSession } from '@prisma/client';
+import { Prisma, type Session as PrismaSession } from '../../prisma/client';
 import type { Session, SessionListQuery, UpsertSessionDto } from '@journal/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
 

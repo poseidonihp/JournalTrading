@@ -2,12 +2,15 @@
   <header class="flex items-center justify-between flex-wrap gap-3">
     <div>
       <h1 class="text-2xl font-semibold">Reportes</h1>
-      <p class="text-sm" style="color: var(--qp-mute-2);">Resumen anual y métricas de riesgo.</p>
+      <p class="text-sm" style="color: var(--qp-mute-2)">Resumen anual y métricas de riesgo.</p>
     </div>
   </header>
 
   @if (error()) {
-    <div class="rounded-md p-3 text-sm" style="background: var(--qp-clay-soft); color: var(--qp-clay);">
+    <div
+      class="rounded-md p-3 text-sm"
+      style="background: var(--qp-clay-soft); color: var(--qp-clay)"
+    >
       {{ error() }}
     </div>
   }
@@ -20,11 +23,7 @@
       <h2 class="text-lg font-semibold">Resumen del año</h2>
       <label class="flex flex-col">
         <span class="sr-only">Año</span>
-        <select
-          class="qp-input text-sm"
-          [ngModel]="year()"
-          (ngModelChange)="onYearChange($event)"
-        >
+        <select class="qp-input text-sm" [ngModel]="year()" (ngModelChange)="onYearChange($event)">
           @for (y of availableYears(); track y) {
             <option [ngValue]="y">{{ y }}</option>
           }
@@ -33,7 +32,7 @@
     </div>
 
     @if (yearKpisLoading() && !yearKpis()) {
-      <div class="qp-card p-12 text-center text-sm" style="color: var(--qp-mute-2);">
+      <div class="qp-card p-12 text-center text-sm" style="color: var(--qp-mute-2)">
         <lucide-icon [name]="iconLoader" class="inline-block animate-spin"></lucide-icon>
         Cargando KPIs…
       </div>
@@ -42,145 +41,319 @@
     }
 
     @if (yearlyLoading()) {
-      <div class="qp-card p-12 text-center text-sm" style="color: var(--qp-mute-2);">
+      <div class="qp-card p-12 text-center text-sm" style="color: var(--qp-mute-2)">
         <lucide-icon [name]="iconLoader" class="inline-block animate-spin"></lucide-icon>
         Cargando…
       </div>
     } @else if (yearly(); as y) {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-      <div class="qp-card p-0 overflow-hidden align-top w-full min-w-0">
-        <div class="overflow-x-auto">
-          <table class="text-[13px] w-full" style="border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums;">
-            <thead>
-              <tr style="background: var(--qp-bg-soft); color: var(--qp-mute-2);">
-                <th class="py-2 pl-4 pr-2 text-left text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Mes</th>
-                <th class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Ops</th>
-                <th class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong); color: var(--qp-sage);">Gan.</th>
-                <th class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong); color: var(--qp-clay);">Perd.</th>
-                <th class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Puntos</th>
-                <th class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Bruto</th>
-                <th class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Neto</th>
-                <th class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Acum.</th>
-                <th class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">Win&nbsp;%</th>
-                <th class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b" style="border-color: var(--qp-line-strong);">PF</th>
-                <th class="py-2 pl-2 pr-4 text-right text-[10px] font-semibold uppercase tracking-wide border-b pct-head"
-                  title="Neto del periodo sobre el capital aportado">%&nbsp;Cap.</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="background: color-mix(in srgb, var(--qp-ink) 4%, transparent); border-bottom: 2px solid var(--qp-line-strong);">
-                <td class="py-2 pl-4 pr-2 font-semibold whitespace-nowrap" style="color: var(--qp-ink);">
-                  <span class="text-[9px] uppercase tracking-widest" style="color: var(--qp-mute-2);">Año</span>
-                  <span class="ml-1.5 serif text-sm">{{ y.year }}</span>
-                </td>
-                <td class="py-2 px-2 text-center font-semibold">{{ y.totals.trades }}</td>
-                <td class="py-2 px-2 text-center font-semibold" style="color: var(--qp-sage);">{{ y.totals.wins }}</td>
-                <td class="py-2 px-2 text-center font-semibold" style="color: var(--qp-clay);">{{ y.totals.losses }}</td>
-                <td class="py-2 px-2 text-right font-semibold whitespace-nowrap" [style.color]="pnlColor(y.totals.points)">{{ formatPoints(y.totals.points) }}</td>
-                <td class="py-2 px-2 text-right font-semibold whitespace-nowrap">{{ formatUsd(y.totals.gross) }}</td>
-                <td class="py-2 px-2 text-right font-semibold serif text-[14px] whitespace-nowrap" [style.color]="pnlColor(y.totals.net)" [title]="netTooltip(y.totals)">{{ formatUsd(y.totals.net) }}</td>
-                <td class="py-2 px-2 text-right" style="color: var(--qp-mute-2);">—</td>
-                <td class="py-2 px-2 text-center font-semibold whitespace-nowrap" [style.color]="winRateBar(y.totals.winRate).color">
-                  {{ formatPct(y.totals.winRate) }}
-                </td>
-                <td class="py-2 px-2 text-center">
-                  <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-semibold min-w-[38px]"
-                    [style.background]="pfBadgeStyle(y.totals.profitFactor).bg"
-                    [style.color]="pfBadgeStyle(y.totals.profitFactor).color">
-                    {{ formatPf(y.totals.profitFactor) }}
-                  </span>
-                </td>
-                <td class="py-2 pl-2 pr-4 text-right font-semibold whitespace-nowrap pct-cell"
-                  [class]="capitalPctClass(y.totals.net)">
-                  {{ formatCapitalPct(y.totals.net) }}
-                </td>
-              </tr>
-              @for (m of y.months; track m.month; let idx = $index) {
-                <tr class="transition-colors hover:bg-fg-soft/40"
-                  [style.opacity]="monthHasData(m) ? 1 : 0.5"
-                  [style.background]="idx % 2 === 1 ? 'color-mix(in srgb, var(--qp-ink) 2%, transparent)' : 'transparent'">
-                  <td class="py-1.5 pl-4 pr-2 border-b whitespace-nowrap" style="border-color: var(--qp-line); color: var(--qp-ink);">
-                    <span class="inline-flex items-center gap-2">
-                      <span class="w-1 h-3.5 rounded-sm" [style.background]="monthHasData(m) ? pnlColor(m.net) : 'var(--qp-line)'"></span>
-                      {{ monthNames[m.month - 1] }}
+        <div class="qp-card p-0 overflow-hidden align-top w-full min-w-0">
+          <div class="overflow-x-auto">
+            <table
+              class="text-[13px] w-full"
+              style="
+                border-collapse: separate;
+                border-spacing: 0;
+                font-variant-numeric: tabular-nums;
+              "
+            >
+              <thead>
+                <tr style="background: var(--qp-bg-soft); color: var(--qp-mute-2)">
+                  <th
+                    class="py-2 pl-4 pr-2 text-left text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    Mes
+                  </th>
+                  <th
+                    class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    Ops
+                  </th>
+                  <th
+                    class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong); color: var(--qp-sage)"
+                  >
+                    Gan.
+                  </th>
+                  <th
+                    class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong); color: var(--qp-clay)"
+                  >
+                    Perd.
+                  </th>
+                  <th
+                    class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong); color: var(--qp-mute-2)"
+                    [title]="breakEvenHint"
+                  >
+                    BE
+                  </th>
+                  <th
+                    class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    Puntos
+                  </th>
+                  <th
+                    class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    Bruto
+                  </th>
+                  <th
+                    class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    Neto
+                  </th>
+                  <th
+                    class="py-2 px-2 text-right text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    Acum.
+                  </th>
+                  <th
+                    class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    Win&nbsp;%
+                  </th>
+                  <th
+                    class="py-2 px-2 text-center text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style="border-color: var(--qp-line-strong)"
+                  >
+                    PF
+                  </th>
+                  <th
+                    class="py-2 pl-2 pr-4 text-right text-[10px] font-semibold uppercase tracking-wide border-b pct-head"
+                    title="Neto del periodo sobre el capital aportado"
+                  >
+                    %&nbsp;Cap.
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  style="
+                    background: color-mix(in srgb, var(--qp-ink) 4%, transparent);
+                    border-bottom: 2px solid var(--qp-line-strong);
+                  "
+                >
+                  <td
+                    class="py-2 pl-4 pr-2 font-semibold whitespace-nowrap"
+                    style="color: var(--qp-ink)"
+                  >
+                    <span
+                      class="text-[9px] uppercase tracking-widest"
+                      style="color: var(--qp-mute-2)"
+                      >Año</span
+                    >
+                    <span class="ml-1.5 serif text-sm">{{ y.year }}</span>
+                  </td>
+                  <td class="py-2 px-2 text-center font-semibold">{{ y.totals.trades }}</td>
+                  <td class="py-2 px-2 text-center font-semibold" style="color: var(--qp-sage)">
+                    {{ y.totals.wins }}
+                  </td>
+                  <td class="py-2 px-2 text-center font-semibold" style="color: var(--qp-clay)">
+                    {{ y.totals.losses }}
+                  </td>
+                  <td class="py-2 px-2 text-center font-semibold" style="color: var(--qp-mute-2)">
+                    {{ y.totals.breakEven }}
+                  </td>
+                  <td
+                    class="py-2 px-2 text-right font-semibold whitespace-nowrap"
+                    [style.color]="pnlColor(y.totals.points)"
+                  >
+                    {{ formatPoints(y.totals.points) }}
+                  </td>
+                  <td class="py-2 px-2 text-right font-semibold whitespace-nowrap">
+                    {{ formatUsd(y.totals.gross) }}
+                  </td>
+                  <td
+                    class="py-2 px-2 text-right font-semibold serif text-[14px] whitespace-nowrap"
+                    [style.color]="pnlColor(y.totals.net)"
+                    [title]="netTooltip(y.totals)"
+                  >
+                    {{ formatUsd(y.totals.net) }}
+                  </td>
+                  <td class="py-2 px-2 text-right" style="color: var(--qp-mute-2)">—</td>
+                  <td
+                    class="py-2 px-2 text-center font-semibold whitespace-nowrap"
+                    [style.color]="winRateBar(y.totals.winRate).color"
+                  >
+                    {{ formatPct(y.totals.winRate) }}
+                  </td>
+                  <td class="py-2 px-2 text-center">
+                    <span
+                      class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-semibold min-w-[38px]"
+                      [style.background]="pfBadgeStyle(y.totals.profitFactor).bg"
+                      [style.color]="pfBadgeStyle(y.totals.profitFactor).color"
+                    >
+                      {{ formatPf(y.totals.profitFactor) }}
                     </span>
                   </td>
-                  <td class="py-1.5 px-2 text-center border-b" style="border-color: var(--qp-line);">{{ m.trades || '—' }}</td>
-                  <td class="py-1.5 px-2 text-center border-b" style="border-color: var(--qp-line); color: var(--qp-sage);">{{ m.wins || '—' }}</td>
-                  <td class="py-1.5 px-2 text-center border-b" style="border-color: var(--qp-line); color: var(--qp-clay);">{{ m.losses || '—' }}</td>
-                  <td class="py-1.5 px-2 text-right border-b font-medium whitespace-nowrap"
-                    [style.border-color]="'var(--qp-line)'"
-                    [style.background]="cellTint(m.points, m.trades)"
-                    [style.color]="m.trades > 0 ? pnlColor(m.points) : 'var(--qp-mute-2)'">
-                    {{ m.trades > 0 ? formatPoints(m.points) : '—' }}
-                  </td>
-                  <td class="py-1.5 px-2 text-right border-b font-medium whitespace-nowrap"
-                    [style.border-color]="'var(--qp-line)'"
-                    [style.background]="cellTint(m.gross, m.trades)"
-                    [style.color]="m.trades > 0 ? pnlColor(m.gross) : 'var(--qp-mute-2)'">
-                    {{ m.trades > 0 ? formatUsd(m.gross) : '—' }}
-                  </td>
-                  <td class="py-1.5 px-2 text-right border-b font-semibold whitespace-nowrap"
-                    [style.border-color]="'var(--qp-line)'"
-                    [style.background]="cellTint(m.net, monthHasData(m) ? 1 : 0)"
-                    [style.color]="monthHasData(m) ? pnlColor(m.net) : 'var(--qp-mute-2)'"
-                    [title]="netTooltip(m)">
-                    {{ monthHasData(m) ? formatUsd(m.net) : '—' }}
-                  </td>
-                  <td class="py-1.5 px-2 text-right border-b whitespace-nowrap" style="border-color: var(--qp-line); color: var(--qp-mute);">
-                    {{ monthHasData(m) ? formatUsd(m.cumulativeNet) : '—' }}
-                  </td>
-                  <td class="py-1.5 px-2 text-center border-b font-medium whitespace-nowrap" style="border-color: var(--qp-line);"
-                      [style.color]="m.trades > 0 ? winRateBar(m.winRate).color : 'var(--qp-mute-2)'">
-                    {{ m.trades > 0 ? formatPct(m.winRate) : '—' }}
-                  </td>
-                  <td class="py-1.5 px-2 text-center border-b" style="border-color: var(--qp-line);">
-                    @if (m.trades > 0) {
-                      <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-medium min-w-[38px]"
-                        [style.background]="pfBadgeStyle(m.profitFactor).bg"
-                        [style.color]="pfBadgeStyle(m.profitFactor).color">
-                        {{ formatPf(m.profitFactor) }}
-                      </span>
-                    } @else {
-                      <span style="color: var(--qp-mute-2);">—</span>
-                    }
-                  </td>
-                  <td class="py-1.5 pl-2 pr-4 text-right border-b font-medium whitespace-nowrap pct-cell"
-                    [class]="capitalPctClass(m.net)">
-                    {{ monthHasData(m) ? formatCapitalPct(m.net) : '—' }}
+                  <td
+                    class="py-2 pl-2 pr-4 text-right font-semibold whitespace-nowrap pct-cell"
+                    [class]="capitalPctClass(y.totals.net)"
+                  >
+                    {{ formatCapitalPct(y.totals.net) }}
                   </td>
                 </tr>
-              }
-            </tbody>
-          </table>
+                @for (m of y.months; track m.month; let idx = $index) {
+                  <tr
+                    class="transition-colors hover:bg-fg-soft/40"
+                    [style.opacity]="monthHasData(m) ? 1 : 0.5"
+                    [style.background]="
+                      idx % 2 === 1
+                        ? 'color-mix(in srgb, var(--qp-ink) 2%, transparent)'
+                        : 'transparent'
+                    "
+                  >
+                    <td
+                      class="py-1.5 pl-4 pr-2 border-b whitespace-nowrap"
+                      style="border-color: var(--qp-line); color: var(--qp-ink)"
+                    >
+                      <span class="inline-flex items-center gap-2">
+                        <span
+                          class="w-1 h-3.5 rounded-sm"
+                          [style.background]="monthHasData(m) ? pnlColor(m.net) : 'var(--qp-line)'"
+                        ></span>
+                        {{ monthNames[m.month - 1] }}
+                      </span>
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-center border-b"
+                      style="border-color: var(--qp-line)"
+                    >
+                      {{ m.trades || '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-center border-b"
+                      style="border-color: var(--qp-line); color: var(--qp-sage)"
+                    >
+                      {{ m.wins || '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-center border-b"
+                      style="border-color: var(--qp-line); color: var(--qp-clay)"
+                    >
+                      {{ m.losses || '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-center border-b"
+                      style="border-color: var(--qp-line); color: var(--qp-mute-2)"
+                    >
+                      {{ m.breakEven || '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-right border-b font-medium whitespace-nowrap"
+                      [style.border-color]="'var(--qp-line)'"
+                      [style.background]="cellTint(m.points, m.trades)"
+                      [style.color]="m.trades > 0 ? pnlColor(m.points) : 'var(--qp-mute-2)'"
+                    >
+                      {{ m.trades > 0 ? formatPoints(m.points) : '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-right border-b font-medium whitespace-nowrap"
+                      [style.border-color]="'var(--qp-line)'"
+                      [style.background]="cellTint(m.gross, m.trades)"
+                      [style.color]="m.trades > 0 ? pnlColor(m.gross) : 'var(--qp-mute-2)'"
+                    >
+                      {{ m.trades > 0 ? formatUsd(m.gross) : '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-right border-b font-semibold whitespace-nowrap"
+                      [style.border-color]="'var(--qp-line)'"
+                      [style.background]="cellTint(m.net, monthHasData(m) ? 1 : 0)"
+                      [style.color]="monthHasData(m) ? pnlColor(m.net) : 'var(--qp-mute-2)'"
+                      [title]="netTooltip(m)"
+                    >
+                      {{ monthHasData(m) ? formatUsd(m.net) : '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-right border-b whitespace-nowrap"
+                      style="border-color: var(--qp-line); color: var(--qp-mute)"
+                    >
+                      {{ monthHasData(m) ? formatUsd(m.cumulativeNet) : '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-center border-b font-medium whitespace-nowrap"
+                      style="border-color: var(--qp-line)"
+                      [style.color]="
+                        m.trades > 0 ? winRateBar(m.winRate).color : 'var(--qp-mute-2)'
+                      "
+                    >
+                      {{ m.trades > 0 ? formatPct(m.winRate) : '—' }}
+                    </td>
+                    <td
+                      class="py-1.5 px-2 text-center border-b"
+                      style="border-color: var(--qp-line)"
+                    >
+                      @if (m.trades > 0) {
+                        <span
+                          class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-medium min-w-[38px]"
+                          [style.background]="pfBadgeStyle(m.profitFactor).bg"
+                          [style.color]="pfBadgeStyle(m.profitFactor).color"
+                        >
+                          {{ formatPf(m.profitFactor) }}
+                        </span>
+                      } @else {
+                        <span style="color: var(--qp-mute-2)">—</span>
+                      }
+                    </td>
+                    <td
+                      class="py-1.5 pl-2 pr-4 text-right border-b font-medium whitespace-nowrap pct-cell"
+                      [class]="capitalPctClass(m.net)"
+                    >
+                      {{ monthHasData(m) ? formatCapitalPct(m.net) : '—' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <div class="qp-card p-4 flex flex-col min-w-0">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-medium">Curva acumulada</h3>
-          <span class="text-xs serif" [style.color]="pnlColor(y.totals.net)">
-            Neto {{ formatUsd(y.totals.net) }}
-          </span>
+        <div class="qp-card p-4 flex flex-col min-w-0">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium">Curva acumulada</h3>
+            <span class="text-xs serif" [style.color]="pnlColor(y.totals.net)">
+              Neto {{ formatUsd(y.totals.net) }}
+            </span>
+          </div>
+          <div class="flex-1 flex items-center">
+            <app-yearly-curve [months]="yearMonths()" />
+          </div>
         </div>
-        <div class="flex-1 flex items-center">
-          <app-yearly-curve [months]="yearMonths()" />
-        </div>
-      </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <div class="qp-card p-4 flex flex-col min-w-0">
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-sm font-medium">Por mes</h3>
-            <div class="inline-flex rounded-md border text-xs" style="border-color: var(--qp-line-strong);">
-              <button type="button" class="px-2 py-1"
+            <div
+              class="inline-flex rounded-md border text-xs"
+              style="border-color: var(--qp-line-strong)"
+            >
+              <button
+                type="button"
+                class="px-2 py-1"
                 [class.bg-fg-soft]="barsMetric() === 'points'"
-                (click)="setBarsMetric('points')">Puntos</button>
-              <button type="button" class="px-2 py-1 border-l"
-                style="border-color: var(--qp-line-strong);"
+                (click)="setBarsMetric('points')"
+              >
+                Puntos
+              </button>
+              <button
+                type="button"
+                class="px-2 py-1 border-l"
+                style="border-color: var(--qp-line-strong)"
                 [class.bg-fg-soft]="barsMetric() === 'net'"
-                (click)="setBarsMetric('net')">Neto</button>
+                (click)="setBarsMetric('net')"
+              >
+                Neto
+              </button>
             </div>
           </div>
           <div class="flex-1">
@@ -191,23 +364,49 @@
         <div class="qp-card p-4 flex flex-col min-w-0">
           <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h3 class="text-sm font-medium">Performance por horario</h3>
-            <div class="inline-flex rounded-md border text-xs" style="border-color: var(--qp-line-strong);">
-              <button type="button" class="px-2 py-1"
+            <div
+              class="inline-flex rounded-md border text-xs"
+              style="border-color: var(--qp-line-strong)"
+            >
+              <button
+                type="button"
+                class="px-2 py-1"
                 [class.bg-fg-soft]="timeMode() === 'hour'"
-                (click)="setTimeMode('hour')">Por hora</button>
-              <button type="button" class="px-2 py-1 border-l"
-                style="border-color: var(--qp-line-strong);"
+                (click)="setTimeMode('hour')"
+              >
+                Por hora
+              </button>
+              <button
+                type="button"
+                class="px-2 py-1 border-l"
+                style="border-color: var(--qp-line-strong)"
                 [class.bg-fg-soft]="timeMode() === 'weekday'"
-                (click)="setTimeMode('weekday')">Día semana</button>
+                (click)="setTimeMode('weekday')"
+              >
+                Día semana
+              </button>
             </div>
           </div>
-          <div class="flex items-center justify-between mb-2 text-[11px]" style="color: var(--qp-mute-2);">
-            <span>Mejor: <span class="font-semibold" style="color: var(--qp-sage);">{{ timeBestLabel() }}</span></span>
-            <span>Peor: <span class="font-semibold" style="color: var(--qp-clay);">{{ timeWorstLabel() }}</span></span>
+          <div
+            class="flex items-center justify-between mb-2 text-[11px]"
+            style="color: var(--qp-mute-2)"
+          >
+            <span
+              >Mejor:
+              <span class="font-semibold" style="color: var(--qp-sage)">{{
+                timeBestLabel()
+              }}</span></span
+            >
+            <span
+              >Peor:
+              <span class="font-semibold" style="color: var(--qp-clay)">{{
+                timeWorstLabel()
+              }}</span></span
+            >
           </div>
           <div class="flex-1">
             @if (timePerfLoading()) {
-              <div class="py-12 text-center text-sm" style="color: var(--qp-mute-2);">
+              <div class="py-12 text-center text-sm" style="color: var(--qp-mute-2)">
                 <lucide-icon [name]="iconLoader" class="inline-block animate-spin"></lucide-icon>
                 Cargando…
               </div>
@@ -224,70 +423,90 @@
     <div class="flex items-center justify-between flex-wrap gap-3">
       <h2 class="text-lg font-semibold">Drawdown</h2>
       <div class="flex items-center gap-2">
-        <label class="flex flex-col">
-          <span class="sr-only">Mes</span>
-          <select
-            class="qp-input text-sm"
-            [ngModel]="month()"
-            (ngModelChange)="onMonthChange($event)"
-          >
-            <option value="">Todo el histórico</option>
-            @for (m of availableMonths(); track m.value) {
-              <option [value]="m.value">{{ m.label }}</option>
-            }
-          </select>
-        </label>
-        <div class="inline-flex rounded-md border" style="border-color: var(--qp-line-strong);">
+        <journal-month-picker
+          [year]="drawdownYear()"
+          [month]="drawdownMonth()"
+          [availableMonths]="monthKeys()"
+          [allowAllYears]="true"
+          [allowAllMonths]="true"
+          allYearsLabel="Todo el histórico"
+          allMonthsLabel="Todo el año"
+          (selectionChange)="onDrawdownPeriodChange($event)"
+        />
+        <div class="inline-flex rounded-md border" style="border-color: var(--qp-line-strong)">
           <button
             type="button"
             class="px-3 py-1.5 text-sm"
             [class.bg-fg-soft]="granularity() === 'trade'"
             (click)="setGranularity('trade')"
-          >Por trade</button>
+          >
+            Por trade
+          </button>
           <button
             type="button"
             class="px-3 py-1.5 text-sm border-l"
-            style="border-color: var(--qp-line-strong);"
+            style="border-color: var(--qp-line-strong)"
             [class.bg-fg-soft]="granularity() === 'day'"
             (click)="setGranularity('day')"
-          >Por día</button>
+          >
+            Por día
+          </button>
         </div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
       <div class="qp-card p-4 flex flex-col gap-3 min-w-0">
-        <h3 class="text-sm font-medium" style="color: var(--qp-mute);">Métricas de drawdown</h3>
+        <h3 class="text-sm font-medium" style="color: var(--qp-mute)">Métricas de drawdown</h3>
         <div class="grid grid-cols-2 gap-3">
-          <div class="rounded-md p-3" style="background: var(--qp-bg-soft);">
-            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2);">Max Drawdown</div>
-            <div class="text-lg serif" style="color: var(--qp-clay);">{{ maxDdLabel() }}</div>
+          <div class="rounded-md p-3" style="background: var(--qp-bg-soft)">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2)">
+              Max Drawdown
+            </div>
+            <div class="text-lg serif" style="color: var(--qp-clay)">{{ maxDdLabel() }}</div>
           </div>
-          <div class="rounded-md p-3" style="background: var(--qp-bg-soft);">
-            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2);">Max DD %</div>
+          <div class="rounded-md p-3" style="background: var(--qp-bg-soft)">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2)">
+              Max DD %
+            </div>
             <div class="text-lg serif">{{ maxDdPctLabel() }}</div>
           </div>
-          <div class="rounded-md p-3" style="background: var(--qp-bg-soft);">
-            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2);">Max DD fecha</div>
+          <div class="rounded-md p-3" style="background: var(--qp-bg-soft)">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2)">
+              Max DD fecha
+            </div>
             <div class="text-lg serif">{{ maxDdDateLabel() }}</div>
           </div>
-          <div class="rounded-md p-3" style="background: var(--qp-bg-soft);">
-            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2);">DD actual</div>
+          <div class="rounded-md p-3" style="background: var(--qp-bg-soft)">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2)">
+              DD actual
+            </div>
             <div class="text-lg serif">{{ currentDdLabel() }}</div>
           </div>
-          <div class="rounded-md p-3" style="background: var(--qp-bg-soft);">
-            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2);">Días en DD</div>
+          <div class="rounded-md p-3" style="background: var(--qp-bg-soft)">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2)">
+              Días en DD
+            </div>
             <div class="text-lg serif">{{ summary?.daysInDrawdown ?? '—' }}</div>
           </div>
-          <div class="rounded-md p-3" style="background: var(--qp-bg-soft);">
-            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2);">Racha más larga</div>
+          <div class="rounded-md p-3" style="background: var(--qp-bg-soft)">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--qp-mute-2)">
+              Racha más larga
+            </div>
             <div class="text-lg serif">{{ summary?.longestDrawdownDays ?? '—' }} días</div>
           </div>
         </div>
-        <div class="text-xs mt-auto pt-2 border-t" style="color: var(--qp-mute-2); border-color: var(--qp-line);">
+        <div
+          class="text-xs mt-auto pt-2 border-t"
+          style="color: var(--qp-mute-2); border-color: var(--qp-line)"
+        >
           Recovery factor:
-          <span class="font-semibold" style="color: var(--qp-ink);">
-            {{ summary?.recoveryFactor !== null && summary?.recoveryFactor !== undefined ? summary?.recoveryFactor?.toFixed(2) : '—' }}
+          <span class="font-semibold" style="color: var(--qp-ink)">
+            {{
+              summary?.recoveryFactor !== null && summary?.recoveryFactor !== undefined
+                ? summary?.recoveryFactor?.toFixed(2)
+                : '—'
+            }}
           </span>
         </div>
       </div>
@@ -295,16 +514,18 @@
       <div class="qp-card p-4 flex flex-col min-w-0">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium">Underwater plot</h3>
-          <span class="text-xs" style="color: var(--qp-mute-2);">{{ granularity() === 'trade' ? 'Por trade' : 'Por día' }}</span>
+          <span class="text-xs" style="color: var(--qp-mute-2)">{{
+            granularity() === 'trade' ? 'Por trade' : 'Por día'
+          }}</span>
         </div>
-      @if (loading()) {
-        <div class="py-12 text-center text-sm" style="color: var(--qp-mute-2);">
-          <lucide-icon [name]="iconLoader" class="inline-block animate-spin"></lucide-icon>
-          Cargando…
-        </div>
-      } @else if (series(); as s) {
-        <app-underwater-chart [series]="s" [granularity]="granularity()" />
-      }
+        @if (loading()) {
+          <div class="py-12 text-center text-sm" style="color: var(--qp-mute-2)">
+            <lucide-icon [name]="iconLoader" class="inline-block animate-spin"></lucide-icon>
+            Cargando…
+          </div>
+        } @else if (series(); as s) {
+          <app-underwater-chart [series]="s" [granularity]="granularity()" />
+        }
       </div>
     </div>
   </section>

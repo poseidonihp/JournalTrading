@@ -11,7 +11,13 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LucideAngularModule, Plus, Download, Sparkles, Upload } from 'lucide-angular';
 import { ImportDialogComponent } from '../imports/import-dialog.component';
-import { enumLabels, type Trade, type TradeMedia } from '@journal/shared-types';
+import {
+  breakEvenPointsThreshold,
+  classifyTradeResult,
+  enumLabels,
+  type Trade,
+  type TradeMedia,
+} from '@journal/shared-types';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { InstrumentsStore } from '../../core/instruments/instruments.store';
 import { ConfirmService } from '../../core/confirm/confirm.service';
@@ -34,6 +40,7 @@ import {
 interface KpiCounts {
   winners: number;
   losers: number;
+  breakEven: number;
   best: number;
   worst: number;
   avgWinner: number;
@@ -66,6 +73,7 @@ export class TradesPage {
   protected readonly formatTime = formatTime;
   protected readonly formatMonth = formatMonth;
   protected readonly formatDuration = formatDuration;
+  protected readonly breakEvenHint = `Break-even: movimiento dentro de ±${breakEvenPointsThreshold} puntos. No cuentan en el win rate, el profit factor ni la expectancy.`;
   protected readonly sparkWidth = 160;
   protected readonly sparkHeight = 42;
   /** Alfa en hex que se concatena al color del tipo de trade para el fondo y el borde del tag. */
@@ -145,29 +153,30 @@ export class TradesPage {
     const rs = this.rows();
     let winners = 0;
     let losers = 0;
+    let breakEven = 0;
     let best = 0;
     let worst = 0;
     let sumW = 0;
     let sumL = 0;
     for (const r of rs) {
       const n = Number(r.net);
-      if (n > best) {
-        best = n;
-      }
-      if (n < worst) {
-        worst = n;
-      }
-      if (n > 0) {
+      const result = classifyTradeResult(Number(r.pointsTotal));
+      if (result === 'WIN') {
         winners += 1;
         sumW += n;
-      } else if (n < 0) {
+        best = Math.max(best, n);
+      } else if (result === 'LOSS') {
         losers += 1;
         sumL += n;
+        worst = Math.min(worst, n);
+      } else {
+        breakEven += 1;
       }
     }
     return {
       winners,
       losers,
+      breakEven,
       best,
       worst,
       avgWinner: winners > 0 ? sumW / winners : 0,
@@ -194,9 +203,14 @@ export class TradesPage {
     return (gross / loss).toFixed(2);
   });
 
+  /** EV = (win rate × avg win) − (loss rate × avg loss); los break-even no cuentan. */
   protected readonly expectancy = computed(() => {
-    const n = this.tradeCount();
-    return n === 0 ? 0 : this.netSum() / n;
+    const { avgWinner, avgLoser, winners, losers } = this.kpiCounts();
+    const decided = winners + losers;
+    if (decided === 0) {
+      return 0;
+    }
+    return (winners / decided) * avgWinner - (losers / decided) * Math.abs(avgLoser);
   });
 
   protected readonly activeDays = computed(() => {

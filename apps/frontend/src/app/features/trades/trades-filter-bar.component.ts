@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, X } from 'lucide-angular';
 import {
@@ -9,11 +9,18 @@ import {
 } from '@journal/shared-types';
 import { InstrumentsStore } from '../../core/instruments/instruments.store';
 import { TradeTypesStore } from '../../core/trade-types/trade-types.store';
+import { InsightsStore } from '../dashboard/insights.store';
+import {
+  MonthPickerComponent,
+  type IMonthSelection,
+} from '../../shared/ui/month-picker.component';
+import { monthKey, parseMonthKey, yearFromIso, yearRange } from '../../shared/months';
 import {
   TRADE_DENSITIES,
   TRADE_SORTS,
   TradesStore,
   type ClientTradeFilters,
+  type ITradePeriod,
   type TradeDensity,
   type TradeSort,
 } from './trades.store';
@@ -29,17 +36,26 @@ interface FilterChange<K extends FilterKey = FilterKey> {
   selector: 'app-trades-filter-bar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule, MonthPickerComponent],
   templateUrl: './trades-filter-bar.component.html',
   styleUrl: './trades-filter-bar.component.scss',
 })
-export class TradesFilterBarComponent {
+export class TradesFilterBarComponent implements OnInit {
   protected readonly iconClear = X;
   protected readonly store = inject(TradesStore);
   protected readonly instruments = inject(InstrumentsStore);
   protected readonly tradeTypesStore = inject(TradeTypesStore);
+  private readonly insights = inject(InsightsStore);
 
   protected readonly tradeTypes = this.tradeTypesStore.types;
+  protected readonly monthKeys = this.insights.availableMonths;
+  protected readonly filterYear = computed(() => {
+    const filters = this.store.filters();
+    return parseMonthKey(filters.month)?.year ?? yearFromIso(filters.from);
+  });
+  protected readonly filterMonth = computed(
+    () => parseMonthKey(this.store.filters().month)?.month ?? null,
+  );
   protected readonly directions = TradeDirectionEnum.options;
   protected readonly emotions = EmotionEnum.options;
   protected readonly exitReasons = ExitReasonEnum.options;
@@ -58,6 +74,16 @@ export class TradesFilterBarComponent {
     cozy: 'Cómodo',
     roomy: 'Espacioso',
   };
+
+  ngOnInit(): void {
+    void this.insights.loadAvailableMonths().catch(() => undefined);
+  }
+
+  /** Aplica el periodo elegido: un mes, el año completo, o sin filtro de fecha. */
+  onPeriodChange(selection: IMonthSelection): void {
+    this.store.setPeriod(TradesFilterBarComponent.toPeriod(selection));
+    void this.store.load();
+  }
 
   labelSort(s: TradeSort): string {
     return this.sortLabels[s];
@@ -104,9 +130,25 @@ export class TradesFilterBarComponent {
 
   hasActive(): boolean {
     const f = this.store.filters();
-    return Boolean(
-      f.month || f.instrumentId || f.tradeTypeId || f.direction || f.emotion || f.exitReason,
-    );
+    return [
+      f.month,
+      f.from,
+      f.instrumentId,
+      f.tradeTypeId,
+      f.direction,
+      f.emotion,
+      f.exitReason,
+    ].some(Boolean);
+  }
+
+  private static toPeriod(selection: IMonthSelection): ITradePeriod {
+    if (selection.year === null) {
+      return {};
+    }
+    if (selection.month === null) {
+      return yearRange(selection.year);
+    }
+    return { month: monthKey(selection.year, selection.month) };
   }
 
   pickTradeTypeId(event: Event): string | undefined {

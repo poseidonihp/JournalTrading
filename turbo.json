@@ -8,7 +8,12 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".angular/cache/**", "!.angular/cache/.tsbuildinfo"]
+      "outputs": [
+        "dist/**",
+        "src/generated/**",
+        ".angular/cache/**",
+        "!.angular/cache/.tsbuildinfo"
+      ]
     },
     "lint": {
       "outputs": []

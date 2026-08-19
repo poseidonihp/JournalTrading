@@ -3,7 +3,7 @@ import {
   Prisma,
   type Trade as PrismaTrade,
   type TradeMedia as PrismaTradeMedia,
-} from '@prisma/client';
+} from '../../prisma/client';
 import type {
   CreateTradeDto,
   Trade,

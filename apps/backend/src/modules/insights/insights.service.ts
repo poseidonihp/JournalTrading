@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../prisma/client';
 import type {
   CalendarDay,
   CalendarMonth,
@@ -20,7 +20,9 @@ import type {
   YearlyTotals,
   TimeBucket,
   TimePerformanceReport,
+  TradeResult,
 } from '@journal/shared-types';
+import { classifyTradeResult } from '@journal/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
 
 interface TradeRow {
@@ -39,6 +41,20 @@ interface PointsBucket {
   gained: Prisma.Decimal;
   lost: Prisma.Decimal;
   commission: Prisma.Decimal;
+}
+
+/** Trade reducido a lo que necesita el agrupado por día del calendario. */
+interface TradeDayRow {
+  enteredAt: Date;
+  net: Prisma.Decimal;
+  pointsTotal: Prisma.Decimal;
+}
+
+interface DayBucket {
+  net: Prisma.Decimal;
+  total: number;
+  wins: number;
+  losses: number;
 }
 
 /** Cargo del fee de data: `amount` es un costo positivo imputado a `periodStart`. */
@@ -86,7 +102,10 @@ export class InsightsService {
     ]);
     trades.sort((a, b) => a.enteredAt.getTime() - b.enteredAt.getTime());
 
-    const tradePoints = trades.map(trade => ({ at: trade.enteredAt.toISOString(), net: trade.net }));
+    const tradePoints = trades.map(trade => ({
+      at: trade.enteredAt.toISOString(),
+      net: trade.net,
+    }));
     for (const fee of fees) {
       tradePoints.push({ at: fee.periodStart.toISOString(), net: fee.amount.negated() });
     }
@@ -137,6 +156,7 @@ export class InsightsService {
       trades: number;
       wins: number;
       losses: number;
+      breakEven: number;
       points: Prisma.Decimal;
       gross: Prisma.Decimal;
       net: Prisma.Decimal;
@@ -148,6 +168,7 @@ export class InsightsService {
       trades: 0,
       wins: 0,
       losses: 0,
+      breakEven: 0,
       points: ZERO,
       gross: ZERO,
       net: ZERO,
@@ -172,12 +193,15 @@ export class InsightsService {
       b.gross = b.gross.plus(r.gross);
       b.net = b.net.plus(r.net);
       const n = new Prisma.Decimal(r.net);
-      if (n.gt(0)) {
+      const result = InsightsService.classify(r.pointsTotal);
+      if (result === 'WIN') {
         b.wins += 1;
         b.winSum = b.winSum.plus(n);
-      } else if (n.lt(0)) {
+      } else if (result === 'LOSS') {
         b.losses += 1;
         b.lossSum = b.lossSum.plus(n);
+      } else {
+        b.breakEven += 1;
       }
     }
 
@@ -198,6 +222,7 @@ export class InsightsService {
         trades: b.trades,
         wins: b.wins,
         losses: b.losses,
+        breakEven: b.breakEven,
         points: b.points.toFixed(2),
         gross: b.gross.toFixed(2),
         net: monthNet.toFixed(2),
@@ -217,6 +242,7 @@ export class InsightsService {
       trades: number;
       wins: number;
       losses: number;
+      breakEven: number;
       points: Prisma.Decimal;
       gross: Prisma.Decimal;
       net: Prisma.Decimal;
@@ -228,6 +254,7 @@ export class InsightsService {
     let trades = 0;
     let wins = 0;
     let losses = 0;
+    let breakEven = 0;
     let points = ZERO;
     let gross = ZERO;
     let net = ZERO;
@@ -238,6 +265,7 @@ export class InsightsService {
       trades += b.trades;
       wins += b.wins;
       losses += b.losses;
+      breakEven += b.breakEven;
       points = points.plus(b.points);
       gross = gross.plus(b.gross);
       net = net.plus(b.net);
@@ -257,6 +285,7 @@ export class InsightsService {
       trades,
       wins,
       losses,
+      breakEven,
       points: points.toFixed(2),
       gross: gross.toFixed(2),
       net: net.minus(fees).toFixed(2),
@@ -282,32 +311,40 @@ export class InsightsService {
 
     const rows = await this.prisma.trade.findMany({
       where,
-      select: { enteredAt: true, net: true },
+      select: { enteredAt: true, net: true, pointsTotal: true },
     });
 
-    type Bucket = { trades: number; wins: number; losses: number; net: Prisma.Decimal };
-    const empty = (): Bucket => ({ trades: 0, wins: 0, losses: 0, net: ZERO });
+    type Bucket = {
+      trades: number;
+      wins: number;
+      losses: number;
+      breakEven: number;
+      net: Prisma.Decimal;
+    };
+    const empty = (): Bucket => ({ trades: 0, wins: 0, losses: 0, breakEven: 0, net: ZERO });
     const hours: Bucket[] = Array.from({ length: 24 }, empty);
     const weekdays: Bucket[] = Array.from({ length: 7 }, empty);
 
+    const accumulate = (bucket: Bucket | undefined, net: Prisma.Decimal, result: TradeResult) => {
+      if (!bucket) {
+        return;
+      }
+      bucket.trades += 1;
+      bucket.net = bucket.net.plus(net);
+      if (result === 'WIN') {
+        bucket.wins += 1;
+      } else if (result === 'LOSS') {
+        bucket.losses += 1;
+      } else {
+        bucket.breakEven += 1;
+      }
+    };
+
     for (const r of rows) {
-      const h = r.enteredAt.getUTCHours();
-      const w = r.enteredAt.getUTCDay();
-      const hb = hours[h];
-      const wb = weekdays[w];
       const n = new Prisma.Decimal(r.net);
-      if (hb) {
-        hb.trades += 1;
-        hb.net = hb.net.plus(n);
-        if (n.gt(0)) hb.wins += 1;
-        else if (n.lt(0)) hb.losses += 1;
-      }
-      if (wb) {
-        wb.trades += 1;
-        wb.net = wb.net.plus(n);
-        if (n.gt(0)) wb.wins += 1;
-        else if (n.lt(0)) wb.losses += 1;
-      }
+      const result = InsightsService.classify(r.pointsTotal);
+      accumulate(hours[r.enteredAt.getUTCHours()], n, result);
+      accumulate(weekdays[r.enteredAt.getUTCDay()], n, result);
     }
 
     const toBucket = (b: Bucket, key: number): TimeBucket => {
@@ -318,6 +355,7 @@ export class InsightsService {
         trades: b.trades,
         wins: b.wins,
         losses: b.losses,
+        breakEven: b.breakEven,
         net: b.net.toFixed(2),
         winRate,
       };
@@ -382,7 +420,7 @@ export class InsightsService {
     const [trades, fees] = await Promise.all([
       this.prisma.trade.findMany({
         where,
-        select: { enteredAt: true, net: true },
+        select: { enteredAt: true, net: true, pointsTotal: true },
         orderBy: { enteredAt: 'asc' },
       }),
       this.feesInRange(userId, query.accountId, start, end),
@@ -397,12 +435,13 @@ export class InsightsService {
       const date = `${yStr}-${mStr}-${String(d).padStart(2, '0')}`;
       const b = dayBuckets.get(date);
       const dayFees = feesByDay.get(date) ?? ZERO;
+      const decided = b ? b.wins + b.losses : 0;
       days.push({
         date,
         net: (b?.net ?? ZERO).minus(dayFees).toFixed(2),
         tradesCount: b?.total ?? 0,
         fees: dayFees.toFixed(2),
-        winRate: b && b.total > 0 ? (b.wins / b.total) * ONE_HUNDRED : 0,
+        winRate: b && decided > 0 ? (b.wins / decided) * ONE_HUNDRED : 0,
       });
     }
 
@@ -574,25 +613,82 @@ export class InsightsService {
   }
 
   /**
-   * Agrupa los trades por día UTC con su neto, total y ganadores.
-   * @param {ReadonlyArray<{ enteredAt: Date; net: Prisma.Decimal }>} trades - Trades a agrupar
-   * @returns {Map<string, { net: Prisma.Decimal; total: number; wins: number }>}
+   * Agrupa los trades por día UTC con su neto, total, ganadores y perdedores.
+   * @param {ReadonlyArray<TradeDayRow>} trades - Trades a agrupar
+   * @returns {Map<string, DayBucket>}
    */
-  private static groupTradesByDay(
-    trades: ReadonlyArray<{ enteredAt: Date; net: Prisma.Decimal }>,
-  ): Map<string, { net: Prisma.Decimal; total: number; wins: number }> {
-    const dayBuckets = new Map<string, { net: Prisma.Decimal; total: number; wins: number }>();
+  private static groupTradesByDay(trades: ReadonlyArray<TradeDayRow>): Map<string, DayBucket> {
+    const dayBuckets = new Map<string, DayBucket>();
     for (const t of trades) {
       const key = InsightsService.dateKey(t.enteredAt);
-      const bucket = dayBuckets.get(key) ?? { net: ZERO, total: 0, wins: 0 };
+      const bucket = dayBuckets.get(key) ?? { net: ZERO, total: 0, wins: 0, losses: 0 };
       bucket.net = bucket.net.plus(t.net);
       bucket.total += 1;
-      if (new Prisma.Decimal(t.net).gt(0)) {
+      const result = InsightsService.classify(t.pointsTotal);
+      if (result === 'WIN') {
         bucket.wins += 1;
+      } else if (result === 'LOSS') {
+        bucket.losses += 1;
+      } else {
+        // Break-even: cuenta en el total del día pero no decide el win rate.
       }
       dayBuckets.set(key, bucket);
     }
     return dayBuckets;
+  }
+
+  /**
+   * Expectancy como EV = (win rate × avg win) − (loss rate × avg loss), sobre los
+   * trades decididos y descontando la parte proporcional del fee de data.
+   * @param {number} wins - Trades ganadores
+   * @param {number} losses - Trades perdedores
+   * @param {Prisma.Decimal} avgWin - Neto promedio de los ganadores
+   * @param {Prisma.Decimal} avgLoss - Neto promedio de los perdedores, negativo
+   * @param {Prisma.Decimal} dataFees - Fee de data del periodo
+   * @returns {Prisma.Decimal}
+   */
+  private static computeExpectancy(
+    wins: number,
+    losses: number,
+    avgWin: Prisma.Decimal,
+    avgLoss: Prisma.Decimal,
+    dataFees: Prisma.Decimal,
+  ): Prisma.Decimal {
+    const decided = wins + losses;
+    if (decided === 0) {
+      return ZERO;
+    }
+    const winRate = new Prisma.Decimal(wins).div(decided);
+    const lossRate = new Prisma.Decimal(losses).div(decided);
+    return winRate.times(avgWin).minus(lossRate.times(avgLoss.abs())).minus(dataFees.div(decided));
+  }
+
+  /**
+   * Rachas máximas de ganadoras y perdedoras consecutivas. Un break-even no
+   * decide nada, así que ni suma ni corta la racha en curso.
+   * @param {TradeRow[]} trades - Trades ordenados por fecha de entrada
+   * @returns {{ wins: number; losses: number }}
+   */
+  private static computeStreaks(trades: TradeRow[]): { wins: number; losses: number } {
+    let maxWins = 0;
+    let maxLosses = 0;
+    let currWins = 0;
+    let currLosses = 0;
+    for (const trade of trades) {
+      const result = InsightsService.classify(trade.pointsTotal);
+      if (result === 'WIN') {
+        currWins += 1;
+        currLosses = 0;
+        maxWins = Math.max(maxWins, currWins);
+      } else if (result === 'LOSS') {
+        currLosses += 1;
+        currWins = 0;
+        maxLosses = Math.max(maxLosses, currLosses);
+      } else {
+        // Break-even: deja la racha en curso intacta.
+      }
+    }
+    return { wins: maxWins, losses: maxLosses };
   }
 
   private computeKpis(trades: TradeRow[], fees: FeeRow[]): KpiSummary {
@@ -640,13 +736,14 @@ export class InsightsService {
       commission = commission.plus(t.commission);
       durationSum += t.durationSeconds;
       const n = new Prisma.Decimal(t.net);
-      if (n.gt(0)) {
+      const result = InsightsService.classify(t.pointsTotal);
+      if (result === 'WIN') {
         wins += 1;
         winSum = winSum.plus(n);
         if (n.gt(largestWin)) {
           largestWin = n;
         }
-      } else if (n.lt(0)) {
+      } else if (result === 'LOSS') {
         losses += 1;
         lossSum = lossSum.plus(n);
         if (n.lt(largestLoss)) {
@@ -667,8 +764,8 @@ export class InsightsService {
       : Number(winSum.div(lossAbs).toFixed(4));
     const avgWin = wins > 0 ? winSum.div(wins) : ZERO;
     const avgLoss = losses > 0 ? lossSum.div(losses) : ZERO;
-    const expectancy = trades.length > 0 ? net.div(trades.length) : ZERO;
     const dataFees = InsightsService.sumFees(fees);
+    const expectancy = InsightsService.computeExpectancy(wins, losses, avgWin, avgLoss, dataFees);
 
     const dayBuckets = new Map<string, Prisma.Decimal>();
     for (const t of trades) {
@@ -684,25 +781,7 @@ export class InsightsService {
       if (v.lt(worstDay)) worstDay = v;
     }
 
-    let maxWinStreak = 0;
-    let maxLossStreak = 0;
-    let currWin = 0;
-    let currLoss = 0;
-    for (const t of trades) {
-      const n = new Prisma.Decimal(t.net);
-      if (n.gt(0)) {
-        currWin += 1;
-        currLoss = 0;
-        if (currWin > maxWinStreak) maxWinStreak = currWin;
-      } else if (n.lt(0)) {
-        currLoss += 1;
-        currWin = 0;
-        if (currLoss > maxLossStreak) maxLossStreak = currLoss;
-      } else {
-        currWin = 0;
-        currLoss = 0;
-      }
-    }
+    const streaks = InsightsService.computeStreaks(trades);
 
     return {
       totalTrades: trades.length,
@@ -723,8 +802,8 @@ export class InsightsService {
       avgDurationSeconds: trades.length > 0 ? Math.floor(durationSum / trades.length) : 0,
       bestDayNet: bestDay.toFixed(2),
       worstDayNet: worstDay.toFixed(2),
-      consecutiveWins: maxWinStreak,
-      consecutiveLosses: maxLossStreak,
+      consecutiveWins: streaks.wins,
+      consecutiveLosses: streaks.losses,
       pointsByCategory: InsightsService.aggregatePoints(trades),
     };
   }
@@ -806,6 +885,15 @@ export class InsightsService {
       weeks.push({ weekIndex, net: weekNet.toFixed(2), tradesCount: weekTrades });
     }
     return weeks;
+  }
+
+  /**
+   * Clasifica un trade con el umbral compartido de break-even.
+   * @param {Prisma.Decimal} points - `pointsTotal` del trade
+   * @returns {TradeResult}
+   */
+  private static classify(points: Prisma.Decimal): TradeResult {
+    return classifyTradeResult(points.toNumber());
   }
 
   private static dateKey(d: Date): string {

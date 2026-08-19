@@ -1,5 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { enumLabels, type KpiPoints, type KpiSummary } from '@journal/shared-types';
+import {
+  breakEvenPointsThreshold,
+  enumLabels,
+  type KpiPoints,
+  type KpiSummary,
+} from '@journal/shared-types';
 import { formatSignedPoints, formatUsd } from '../../shared/format';
 import {
   MiniDivergeComponent,
@@ -38,6 +43,14 @@ export class KpiCardsComponent {
   });
 
   protected readonly winRateLabel = computed(() => `${this.kpis().winRate.toFixed(1)}%`);
+
+  /** Explica que los break-even quedan fuera del denominador del win rate. */
+  protected readonly winRateTooltip = computed(() => {
+    const kpis = this.kpis();
+    const decided = kpis.winningTrades + kpis.losingTrades;
+    const scratch = `los ${kpis.breakEvenTrades} break-even (±${breakEvenPointsThreshold} puntos) no cuentan`;
+    return `${kpis.winningTrades} de ${decided} operaciones decididas · ${scratch}`;
+  });
 
   protected readonly avgDurationLabel = computed(() => {
     const seconds = this.kpis().avgDurationSeconds;

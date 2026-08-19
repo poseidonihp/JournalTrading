@@ -28,6 +28,8 @@ export {
   type SessionListQuery,
 } from './session';
 export {
+  breakEvenPointsThreshold,
+  classifyTradeResult,
   InsightsFiltersSchema,
   KpiPointsSchema,
   KpiSummarySchema,
@@ -48,6 +50,7 @@ export {
   TimePerformanceQuerySchema,
   TimeBucketSchema,
   TimePerformanceReportSchema,
+  type TradeResult,
   type InsightsFilters,
   type KpiPoints,
   type KpiSummary,

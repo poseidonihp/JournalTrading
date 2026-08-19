@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, type CapitalMovement as PrismaCapitalMovement } from '@prisma/client';
+import { Prisma, type CapitalMovement as PrismaCapitalMovement } from '../../prisma/client';
 import type {
   CapitalMovement,
   CreateCapitalMovementDto,

@@ -9,35 +9,31 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Loader, TrendingDown } from 'lucide-angular';
-import type { Account, YearlyMonth } from '@journal/shared-types';
+import { breakEvenPointsThreshold, type Account, type YearlyMonth } from '@journal/shared-types';
 import { AccountsStore } from '../../core/accounts/accounts.store';
 import { InsightsStore } from '../dashboard/insights.store';
 import { KpiCardsComponent } from '../dashboard/kpi-cards.component';
-import { ReportsStore } from './reports.store';
+import { ReportsStore, type IDrawdownRange } from './reports.store';
 import { UnderwaterChartComponent } from './underwater-chart.component';
 import { YearlyCurveComponent } from './yearly-curve.component';
 import { MonthlyBarsComponent } from './monthly-bars.component';
 import { TimePerfChartComponent } from './time-perf-chart.component';
 import { CapitalSummaryComponent } from '../../shared/ui/capital-summary.component';
+import {
+  MonthPickerComponent,
+  type IMonthSelection,
+} from '../../shared/ui/month-picker.component';
+import { monthKey, monthNames, yearRange, yearsFromMonthKeys } from '../../shared/months';
 import { formatUsd } from '../../shared/format';
 
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-
 const percentFactor = 100;
-
-function currentMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
 
 @Component({
   selector: 'app-reports-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule, CapitalSummaryComponent, KpiCardsComponent, UnderwaterChartComponent, YearlyCurveComponent, MonthlyBarsComponent, TimePerfChartComponent],
+  imports: [FormsModule, LucideAngularModule, CapitalSummaryComponent,
+    KpiCardsComponent, MonthPickerComponent, UnderwaterChartComponent, YearlyCurveComponent, MonthlyBarsComponent, TimePerfChartComponent],
   templateUrl: './reports.page.html',
   styleUrl: './reports.page.scss',
   host: { class: 'block flex-1 min-h-0 overflow-y-auto' },
@@ -51,12 +47,17 @@ export class ReportsPage implements OnInit {
   private readonly insights = inject(InsightsStore);
   private readonly accounts = inject(AccountsStore);
 
-  protected readonly month = signal<string>('');
   protected readonly granularity = signal<'trade' | 'day'>('trade');
   protected readonly year = signal<number>(new Date().getFullYear());
   protected readonly barsMetric = signal<'points' | 'net'>('points');
   protected readonly timeMode = signal<'hour' | 'weekday'>('hour');
-  protected readonly monthNames = MONTH_NAMES;
+  protected readonly monthNames = monthNames;
+
+  /** Filtro del drawdown: sin año es todo el histórico, sin mes es el año completo. */
+  protected readonly drawdownYear = signal<number | null>(null);
+  protected readonly drawdownMonth = signal<number | null>(null);
+  protected readonly monthKeys = this.insights.availableMonths;
+  protected readonly breakEvenHint = `Break-even: movimiento dentro de ±${breakEvenPointsThreshold} puntos. No cuentan en el win rate ni en el profit factor.`;
 
   protected readonly report = this.reports.drawdown;
   protected readonly yearly = this.reports.yearly;
@@ -99,12 +100,7 @@ export class ReportsPage implements OnInit {
   });
 
   protected readonly availableYears = computed(() => {
-    const months = this.insights.availableMonths();
-    const years = new Set<number>();
-    for (const m of months) {
-      const y = Number(m.split('-')[0]);
-      if (!Number.isNaN(y)) years.add(y);
-    }
+    const years = new Set<number>(yearsFromMonthKeys(this.insights.availableMonths()));
     years.add(new Date().getFullYear());
     years.add(this.year());
     return Array.from(years).sort((a, b) => b - a);
@@ -159,28 +155,23 @@ export class ReportsPage implements OnInit {
     return s ? formatUsd(s.currentDrawdown) : '—';
   });
 
-  protected readonly availableMonths = computed(() => {
-    const fromBackend = this.insights.availableMonths();
-    const set = new Set<string>(fromBackend);
-    const cur = this.month() || currentMonth();
-    set.add(cur);
-    set.add(currentMonth());
-    const sorted = Array.from(set).sort((a, b) => b.localeCompare(a));
-    return sorted.map(value => {
-      const [y, m] = value.split('-').map(Number);
-      const label = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('es-CO', {
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      });
-      return { value, label };
-    });
+  /** Traduce el año/mes elegidos al filtro que entiende el backend. */
+  private readonly drawdownRange = computed<IDrawdownRange>(() => {
+    const year = this.drawdownYear();
+    if (year === null) {
+      return {};
+    }
+    const month = this.drawdownMonth();
+    if (month !== null) {
+      return { month: monthKey(year, month) };
+    }
+    return yearRange(year);
   });
 
   constructor() {
     effect(() => {
       this.accounts.selectedId();
-      void this.reports.loadDrawdown(this.month() || undefined);
+      void this.reports.loadDrawdown(this.drawdownRange());
     });
     effect(() => {
       this.accounts.selectedId();
@@ -202,22 +193,20 @@ export class ReportsPage implements OnInit {
 
   private async bootstrap(): Promise<void> {
     await this.accounts.load();
-    await Promise.all([
-      this.insights.loadAvailableMonths(),
-      this.reports.loadDrawdown(undefined),
-    ]);
+    await this.insights.loadAvailableMonths();
   }
 
-  protected async onMonthChange(value: string): Promise<void> {
-    this.month.set(value);
-    await this.reports.loadDrawdown(value || undefined);
+  protected onDrawdownPeriodChange(selection: IMonthSelection): void {
+    this.drawdownYear.set(selection.year);
+    this.drawdownMonth.set(selection.month);
   }
 
-  protected async onYearChange(value: number | string): Promise<void> {
+  protected onYearChange(value: number | string): void {
     const y = typeof value === 'string' ? Number(value) : value;
-    if (Number.isNaN(y) || y === this.year()) return;
+    if (Number.isNaN(y) || y === this.year()) {
+      return;
+    }
     this.year.set(y);
-    await this.reports.loadYearly(y);
   }
 
   protected setGranularity(g: 'trade' | 'day'): void {

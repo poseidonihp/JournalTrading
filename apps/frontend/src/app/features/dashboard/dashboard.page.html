@@ -12,18 +12,12 @@
       <button type="button" class="icon-btn" (click)="prevMonth()" aria-label="Mes anterior">
         <lucide-icon [name]="iconLeft" class="h-4 w-4"></lucide-icon>
       </button>
-      <label class="flex flex-col">
-        <span class="sr-only">Seleccionar mes</span>
-        <select
-          class="month-select capitalize"
-          [ngModel]="month()"
-          (ngModelChange)="onMonthChange($event)"
-        >
-          @for (m of availableMonths(); track m.value) {
-            <option [value]="m.value">{{ m.label }}</option>
-          }
-        </select>
-      </label>
+      <journal-month-picker
+        [year]="selectedYear()"
+        [month]="selectedMonth()"
+        [availableMonths]="monthKeys()"
+        (selectionChange)="onPeriodChange($event)"
+      />
       <button type="button" class="icon-btn" (click)="nextMonth()" aria-label="Mes siguiente">
         <lucide-icon [name]="iconRight" class="h-4 w-4"></lucide-icon>
       </button>

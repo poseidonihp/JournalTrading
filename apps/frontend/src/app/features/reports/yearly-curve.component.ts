@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import type { YearlyMonth } from '@journal/shared-types';
 import { formatUsd } from '../../shared/format';
+import { monthName, monthNameShort } from '../../shared/months';
 
 const WIDTH = 1100;
 const HEIGHT = 280;
@@ -45,12 +46,6 @@ interface RenderModel {
   hasPositive: boolean;
   hasNegative: boolean;
 }
-
-const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-const MONTH_FULL_LABELS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
 
 function formatDelta(value: number): string {
   const formatted = formatUsd(value);
@@ -101,7 +96,7 @@ export class YearlyCurveComponent {
     const area = YearlyCurveComponent.smoothArea(pts, zeroY);
 
     const gridLines = YearlyCurveComponent.niceGrid(niceMin, niceMax, scaleY);
-    const xTicks: XTick[] = months.map((m, i) => ({ x: scaleX(i), label: MONTH_LABELS[m.month - 1] ?? '' }));
+    const xTicks: XTick[] = months.map((m, i) => ({ x: scaleX(i), label: monthNameShort(m.month) }));
     const markers = YearlyCurveComponent.buildMarkers(months, values, scaleX, scaleY);
 
     return {
@@ -151,7 +146,7 @@ export class YearlyCurveComponent {
         key: month.month,
         positive: accum >= 0,
         hasTrades: month.trades > 0,
-        monthLabel: MONTH_FULL_LABELS[month.month - 1] ?? '',
+        monthLabel: monthName(month.month),
         netLabel: formatDelta(Number(month.net)),
         accumLabel: formatUsd(accum),
         tradesLabel: month.trades === 1 ? '1 trade' : `${month.trades} trades`,

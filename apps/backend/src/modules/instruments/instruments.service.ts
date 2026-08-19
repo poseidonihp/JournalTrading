@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, type Instrument as PrismaInstrument } from '@prisma/client';
+import { Prisma, type Instrument as PrismaInstrument } from '../../prisma/client';
 import type { Instrument, CreateInstrumentDto, UpdateInstrumentDto } from '@journal/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
 

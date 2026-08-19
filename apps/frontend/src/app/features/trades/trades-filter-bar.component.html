@@ -1,20 +1,22 @@
 <div class="flex flex-wrap items-center gap-2">
-  <span
-    class="mr-1 text-[10px] uppercase tracking-[0.1em]"
-    style="color: var(--qp-mute-2);"
-  >
+  <span class="mr-1 text-[10px] uppercase tracking-[0.1em]" style="color: var(--qp-mute-2)">
     Filtros
   </span>
 
-  <input
-    type="month"
-    [value]="store.filters().month ?? ''"
-    (change)="onChange({ key: 'month', value: pickValue($event) || undefined })"
-    class="chip-month"
-    [class.active]="!!store.filters().month"
+  <journal-month-picker
+    [year]="filterYear()"
+    [month]="filterMonth()"
+    [availableMonths]="monthKeys()"
+    [allowAllYears]="true"
+    [allowAllMonths]="true"
+    allYearsLabel="Cualquier fecha"
+    allMonthsLabel="Todo el año"
+    (selectionChange)="onPeriodChange($event)"
   />
 
+  <label class="sr-only" for="filter-instrument">Instrumento</label>
   <select
+    id="filter-instrument"
     [value]="store.filters().instrumentId ?? ''"
     (change)="onChange({ key: 'instrumentId', value: pickValue($event) || undefined })"
     class="chip-select"
@@ -26,7 +28,9 @@
     }
   </select>
 
+  <label class="sr-only" for="filter-trade-type">Tipo de trade</label>
   <select
+    id="filter-trade-type"
     [value]="store.filters().tradeTypeId ?? ''"
     (change)="onChange({ key: 'tradeTypeId', value: pickTradeTypeId($event) })"
     class="chip-select"
@@ -38,7 +42,9 @@
     }
   </select>
 
+  <label class="sr-only" for="filter-direction">Dirección</label>
   <select
+    id="filter-direction"
     [value]="store.filters().direction ?? ''"
     (change)="onChange({ key: 'direction', value: pickEnum($event, directions) })"
     class="chip-select"
@@ -50,7 +56,9 @@
     }
   </select>
 
+  <label class="sr-only" for="filter-emotion">Emoción</label>
   <select
+    id="filter-emotion"
     [value]="store.filters().emotion ?? ''"
     (change)="onChange({ key: 'emotion', value: pickEnum($event, emotions) })"
     class="chip-select"
@@ -62,7 +70,9 @@
     }
   </select>
 
+  <label class="sr-only" for="filter-exit-reason">Salida</label>
   <select
+    id="filter-exit-reason"
     [value]="store.filters().exitReason ?? ''"
     (change)="onChange({ key: 'exitReason', value: pickEnum($event, exitReasons) })"
     class="chip-select"
@@ -81,10 +91,11 @@
     </button>
   }
 
-  <div class="ml-auto flex items-center gap-3 text-[12px]" style="color: var(--qp-mute);">
-    <label class="flex items-center gap-2">
+  <div class="ml-auto flex items-center gap-3 text-[12px]" style="color: var(--qp-mute)">
+    <label class="flex items-center gap-2" for="filter-sort">
       <span>Ordenar por</span>
       <select
+        id="filter-sort"
         [value]="store.sort()"
         (change)="onSortChange($event)"
         class="chip-select"
@@ -94,9 +105,10 @@
         }
       </select>
     </label>
-    <label class="flex items-center gap-2">
+    <label class="flex items-center gap-2" for="filter-density">
       <span>Densidad</span>
       <select
+        id="filter-density"
         [value]="store.density()"
         (change)="onDensityChange($event)"
         class="chip-select"

@@ -6,6 +6,27 @@ import {
   TradeDirectionEnum,
 } from './enums';
 
+/**
+ * Umbral en puntos brutos por contrato dentro del cual un trade es break-even:
+ * el movimiento apenas cubre la comisión, así que no es ganador ni perdedor.
+ */
+export const breakEvenPointsThreshold = 1;
+
+export type TradeResult = 'WIN' | 'LOSS' | 'BREAKEVEN';
+
+/**
+ * Clasifica un trade por su movimiento en puntos. El umbral es simétrico, así
+ * que un −1 punto es scratch igual que un +1.
+ * @param {number} points - `pointsTotal` del trade (movimiento por contrato)
+ * @returns {TradeResult}
+ */
+export function classifyTradeResult(points: number): TradeResult {
+  if (Math.abs(points) <= breakEvenPointsThreshold) {
+    return 'BREAKEVEN';
+  }
+  return points > 0 ? 'WIN' : 'LOSS';
+}
+
 // ---------------------------------------------------------------------------
 // Filtros compartidos para todos los endpoints de insights
 // ---------------------------------------------------------------------------
@@ -184,6 +205,8 @@ export const YearlyMonthSchema = z.object({
   trades: z.number().int().nonnegative(),
   wins: z.number().int().nonnegative(),
   losses: z.number().int().nonnegative(),
+  /** Trades dentro del umbral de scratch; no entran en `winRate` ni en `profitFactor`. */
+  breakEven: z.number().int().nonnegative(),
   points: z.string(),
   gross: z.string(),
   /** Neto de los trades del mes menos el fee de data del mes (ver `fees`). */
@@ -200,6 +223,8 @@ export const YearlyTotalsSchema = z.object({
   trades: z.number().int().nonnegative(),
   wins: z.number().int().nonnegative(),
   losses: z.number().int().nonnegative(),
+  /** Trades dentro del umbral de scratch; no entran en `winRate` ni en `profitFactor`. */
+  breakEven: z.number().int().nonnegative(),
   points: z.string(),
   gross: z.string(),
   /** Neto de los trades del año menos el fee de data del año (ver `fees`). */
@@ -234,6 +259,8 @@ export const TimeBucketSchema = z.object({
   trades: z.number().int().nonnegative(),
   wins: z.number().int().nonnegative(),
   losses: z.number().int().nonnegative(),
+  /** Trades dentro del umbral de scratch; no entran en `winRate`. */
+  breakEven: z.number().int().nonnegative(),
   net: z.string(),
   winRate: z.number(),
 });

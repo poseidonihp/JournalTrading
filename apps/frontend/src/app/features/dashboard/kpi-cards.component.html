@@ -62,8 +62,12 @@
     <div class="kpi-text">
       <div class="uplabel">Win Rate</div>
       <div class="serif text-[24px] mt-1">{{ winRateLabel() }}</div>
-      <div class="text-[11px]" style="color: var(--qp-mute-2)">
-        {{ k.winningTrades }} W · {{ k.losingTrades }} L · {{ k.breakEvenTrades }} BE
+      <div class="wl-legend" [title]="winRateTooltip()">
+        <span class="wl-win">{{ k.winningTrades }} W</span>
+        <span class="wl-sep">·</span>
+        <span class="wl-loss">{{ k.losingTrades }} L</span>
+        <span class="wl-sep">·</span>
+        <span class="wl-be">{{ k.breakEvenTrades }} BE</span>
       </div>
     </div>
     <div class="kpi-chart">
@@ -84,10 +88,17 @@
       </div>
     </div>
     <div class="kpi-chart kpi-chart-bar">
-      <app-mini-diverge [positive]="k.winningTrades" [negative]="k.losingTrades"></app-mini-diverge>
+      <app-mini-diverge
+        [positive]="k.winningTrades"
+        [negative]="k.losingTrades"
+        [neutral]="k.breakEvenTrades"
+      ></app-mini-diverge>
       <div class="bar-legend">
-        <span style="color: var(--qp-positive)">{{ k.winningTrades }}W</span>
-        <span style="color: var(--qp-clay)">{{ k.losingTrades }}L</span>
+        <span class="wl-win">{{ k.winningTrades }}W</span>
+        <span class="wl-loss">{{ k.losingTrades }}L</span>
+        @if (k.breakEvenTrades > 0) {
+          <span class="wl-be">{{ k.breakEvenTrades }}BE</span>
+        }
       </div>
     </div>
   </div>

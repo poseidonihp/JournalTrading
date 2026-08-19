@@ -26,6 +26,7 @@ import {
 import type { EquityCurve, KpiSummary, TrackerAccount } from '@journal/shared-types';
 import { ApiClient } from '../../core/http/api.client';
 import { formatUsd } from '../../shared/format';
+import { monthNameShort } from '../../shared/months';
 
 interface ChartPoint {
   readonly date: string;
@@ -435,8 +436,7 @@ export class TrackerPage implements OnInit, AfterViewInit {
   protected formatTooltipDate(iso: string): string {
     const d = new Date(`${iso}T00:00:00Z`);
     const day = d.getUTCDate();
-    const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    const month = monthNames[d.getUTCMonth()] ?? '';
+    const month = monthNameShort(d.getUTCMonth() + 1).toLowerCase();
     const year = d.getUTCFullYear() % 100;
     return `${day} ${month} ${year}`;
   }

@@ -1,0 +1,49 @@
+.month-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.month-picker-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.month-picker-select {
+  appearance: none;
+  background: var(--qp-bg-soft);
+  border: 1px solid var(--qp-line);
+  color: var(--qp-ink);
+  padding: 6px 28px 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  transition: border-color 120ms ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--qp-line-strong);
+    outline-offset: 1px;
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  &:hover:not(:disabled) {
+    border-color: var(--qp-line-strong);
+  }
+
+
+}
+
+.month-picker-select.year {
+  min-width: 92px;
+}
+
+.month-picker-select.month {
+  min-width: 132px;
+}

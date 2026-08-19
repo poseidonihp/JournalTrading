@@ -69,3 +69,28 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+.wl-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wl-win {
+  color: var(--qp-sage);
+}
+
+.wl-loss {
+  color: var(--qp-clay);
+}
+
+.wl-be {
+  color: var(--qp-mute-2);
+}
+
+.wl-sep {
+  color: var(--qp-line-strong);
+}

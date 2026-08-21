@@ -76,22 +76,12 @@ export interface ViewerImage {
         </button>
       }
 
-      @if (current()) {
-        <div class="viewer-toolbar" (click)="$event.stopPropagation()">
-          <button type="button" class="viewer-btn" (click)="zoomOut()" aria-label="Reducir">
-            <lucide-icon [name]="iconZoomOut" class="h-4 w-4"></lucide-icon>
-          </button>
-          <span class="viewer-zoom">{{ zoomLabel() }}</span>
-          <button type="button" class="viewer-btn" (click)="zoomIn()" aria-label="Ampliar">
-            <lucide-icon [name]="iconZoomIn" class="h-4 w-4"></lucide-icon>
-          </button>
-          @if (images().length > 1) {
-            <span class="viewer-counter">{{ index() + 1 }} / {{ images().length }}</span>
-          }
-        </div>
-      }
-
-      <div class="viewer-stage" (click)="$event.stopPropagation()" (wheel)="onWheel($event)">
+      <div
+        class="viewer-stage"
+        [class.with-note]="!!note()"
+        (click)="$event.stopPropagation()"
+        (wheel)="onWheel($event)"
+      >
         @if (current(); as img) {
           <img
             [src]="img.url"
@@ -104,6 +94,31 @@ export interface ViewerImage {
           <p class="viewer-empty">{{ emptyLabel() }}</p>
         }
       </div>
+
+      @if (current()) {
+        <div class="viewer-footer" (click)="$event.stopPropagation()">
+          @if (note()) {
+            <div class="viewer-note">
+              @if (noteLabel()) {
+                <span class="viewer-note-label">{{ noteLabel() }}</span>
+              }
+              <p class="viewer-note-text">{{ note() }}</p>
+            </div>
+          }
+          <div class="viewer-toolbar">
+            <button type="button" class="viewer-btn" (click)="zoomOut()" aria-label="Reducir">
+              <lucide-icon [name]="iconZoomOut" class="h-4 w-4"></lucide-icon>
+            </button>
+            <span class="viewer-zoom">{{ zoomLabel() }}</span>
+            <button type="button" class="viewer-btn" (click)="zoomIn()" aria-label="Ampliar">
+              <lucide-icon [name]="iconZoomIn" class="h-4 w-4"></lucide-icon>
+            </button>
+            @if (images().length > 1) {
+              <span class="viewer-counter">{{ index() + 1 }} / {{ images().length }}</span>
+            }
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [
@@ -138,6 +153,9 @@ export interface ViewerImage {
         justify-content: center;
         overflow: auto;
         padding: 64px;
+      }
+      .viewer-stage.with-note {
+        padding-bottom: 184px;
       }
       .viewer-img {
         max-width: 100%;
@@ -194,9 +212,6 @@ export interface ViewerImage {
       }
       .viewer-toolbar,
       .viewer-topbar {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
         display: flex;
         align-items: center;
         gap: 8px;
@@ -207,12 +222,49 @@ export interface ViewerImage {
         backdrop-filter: blur(8px);
         color: #fff;
       }
-      .viewer-toolbar {
-        bottom: 20px;
-      }
       .viewer-topbar {
+        position: absolute;
+        left: 50%;
         top: 20px;
+        transform: translateX(-50%);
         max-width: calc(100% - 140px);
+      }
+      .viewer-footer {
+        position: absolute;
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: min(760px, calc(100% - 40px));
+      }
+      .viewer-note {
+        width: 100%;
+        max-height: 100px;
+        overflow-y: auto;
+        padding: 10px 16px;
+        background: rgba(0, 0, 0, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        backdrop-filter: blur(8px);
+        text-align: left;
+      }
+      .viewer-note-label {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .viewer-note-text {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        color: rgba(255, 255, 255, 0.92);
       }
       .viewer-toolbar .viewer-btn,
       .viewer-topbar .viewer-btn {
@@ -265,6 +317,10 @@ export class ImageViewerComponent {
   readonly hasNextRecord = input<boolean>(false);
   /** Mensaje a mostrar cuando el registro actual no tiene imágenes. */
   readonly emptyLabel = input<string>('');
+  /** Texto al pie del visor (p. ej. la razón de entrada); si viene vacío no se renderiza. */
+  readonly note = input<string>('');
+  /** Rótulo del bloque de nota; solo se muestra cuando hay nota. */
+  readonly noteLabel = input<string>('');
   readonly dismissed = output();
   readonly prevRecord = output();
   readonly nextRecord = output();

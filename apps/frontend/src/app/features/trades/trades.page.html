@@ -218,6 +218,8 @@
         [hasPrevRecord]="hasPrevTrade()"
         [hasNextRecord]="hasNextTrade()"
         emptyLabel="Este trade no tiene imágenes"
+        [note]="viewerNote()"
+        noteLabel="Razón de entrada"
         (prevRecord)="showPrevTrade()"
         (nextRecord)="showNextTrade()"
         (dismissed)="closeViewer()"

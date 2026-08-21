@@ -126,6 +126,8 @@ export class TradesPage {
     return `${trade.instrumentSymbol} · ${formatDateTime(trade.enteredAt)}`;
   });
 
+  protected readonly viewerNote = computed(() => this.selected()?.entryReason ?? '');
+
   private readonly selectedIndex = computed(() => {
     const id = this.selectedId();
     if (id === null) {

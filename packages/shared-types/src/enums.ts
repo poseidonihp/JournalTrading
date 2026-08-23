@@ -54,6 +54,12 @@ export const enumLabels = {
     DEPOSIT: 'Aporte',
     WITHDRAWAL: 'Retiro',
   },
+  /** Nivel de confianza de un bucket del digest del mentor. */
+  mentorConfidence: {
+    HIGH: 'Alta',
+    MEDIUM: 'Media',
+    LOW: 'Baja',
+  },
   /** Unidad en la que se miden los puntos según la categoría del instrumento. */
   pointsUnit: {
     FUTURE: 'pts',

@@ -18,7 +18,8 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "gen:rsa": "tsx scripts/gen-rsa-keys.ts",
-    "merge:user": "tsx scripts/merge-user.ts"
+    "merge:user": "tsx scripts/merge-user.ts",
+    "check:mentor": "tsx scripts/check-mentor-digest.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

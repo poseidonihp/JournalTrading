@@ -1,0 +1,53 @@
+<section class="card-panel leaks">
+  <header class="leaks-head">
+    <div class="uplabel">Diagnóstico</div>
+    <h2 class="serif leaks-title">Fugas</h2>
+  </header>
+
+  @if (rows().length === 0) {
+    <p class="leaks-empty">Sin fugas señaladas para este periodo.</p>
+  } @else {
+    <ul class="leaks-list">
+      @for (row of rows(); track row.label + row.text) {
+        <li class="leaks-item">
+          <p class="leaks-text">{{ row.text }}</p>
+          <div class="leaks-meta">
+            <span class="leaks-label">{{ row.label }}</span>
+            <span class="leaks-dim">{{ row.dimensionLabel }}</span>
+            @if (row.bucket; as bucket) {
+              <span [class]="confidenceClass(bucket.confidence)">
+                {{ confidenceLabel(bucket.confidence) }}
+              </span>
+            }
+          </div>
+          @if (row.bucket; as bucket) {
+            <dl class="leaks-stats">
+              <div>
+                <dt>Ops</dt>
+                <dd>{{ bucket.trades }}</dd>
+              </div>
+              <div>
+                <dt>Neto</dt>
+                <dd>{{ formatUsd(bucket.netBeforeDataFees) }}</dd>
+              </div>
+              <div>
+                <dt>Win rate</dt>
+                <dd [class]="winRateClass(bucket.winRate)">{{ formatPct(bucket.winRate) }}</dd>
+              </div>
+              <div>
+                <dt>Profit factor</dt>
+                <dd>{{ formatPf(bucket.profitFactor) }}</dd>
+              </div>
+              <div>
+                <dt>Neto por trade</dt>
+                <dd>{{ formatUsd(bucket.expectancy) }}</dd>
+              </div>
+            </dl>
+          } @else {
+            <p class="leaks-unverified">Sin bucket verificable en el digest.</p>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

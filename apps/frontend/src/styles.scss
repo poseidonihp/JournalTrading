@@ -126,6 +126,12 @@ input[type='datetime-local']::-webkit-calendar-picker-indicator {
   background: var(--qp-bg-soft);
 }
 
+.card-panel {
+  background: var(--qp-bg-soft);
+  border: 1px solid var(--qp-line);
+  border-radius: 12px;
+}
+
 .panel {
   background: var(--qp-bg-soft);
   color: var(--qp-ink);

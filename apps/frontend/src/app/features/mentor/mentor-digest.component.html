@@ -1,0 +1,71 @@
+<section class="card-panel dig">
+  <header class="dig-head">
+    <div>
+      <div class="uplabel">Verificación</div>
+      <h2 class="serif dig-title">Los números</h2>
+    </div>
+    <label class="dig-select-wrap">
+      <span class="uplabel">Dimensión</span>
+      <select
+        class="field-select dig-select"
+        [value]="selectedId() ?? ''"
+        (change)="onDimensionChange($any($event.target).value)"
+      >
+        @for (option of options(); track option.id) {
+          <option [value]="option.id">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+  </header>
+
+  @if (buckets().length === 0) {
+    <p class="dig-empty">Sin datos en el periodo.</p>
+  } @else {
+    <div class="dig-scroll">
+      <table class="dig-table">
+        <thead>
+          <tr>
+            <th scope="col">Grupo</th>
+            <th scope="col" class="num">Ops</th>
+            <th scope="col" class="num">G / P / S</th>
+            <th scope="col" class="num">Neto</th>
+            <th scope="col" class="num">Win rate</th>
+            <th scope="col" class="num">PF</th>
+            <th scope="col" class="num">Neto/op</th>
+            <th scope="col">Confianza</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (bucket of buckets(); track bucket.key) {
+            <tr [class.dig-low]="bucket.confidence === 'LOW'">
+              <td>{{ bucket.label }}</td>
+              <td class="num">{{ bucket.trades }}</td>
+              <td class="num">{{ bucket.wins }} / {{ bucket.losses }} / {{ bucket.breakEven }}</td>
+              <td
+                class="num"
+                [class.positive]="+bucket.netBeforeDataFees > 0"
+                [class.negative]="+bucket.netBeforeDataFees < 0"
+              >
+                {{ formatUsd(bucket.netBeforeDataFees) }}
+              </td>
+              <td class="num" [class]="winRateClass(bucket.winRate)">
+                {{ formatPct(bucket.winRate) }}
+              </td>
+              <td class="num">{{ formatPf(bucket.profitFactor) }}</td>
+              <td class="num">{{ formatUsd(bucket.expectancy) }}</td>
+              <td>
+                <span [class]="confidenceClass(bucket.confidence)">{{
+                  confidenceLabel(bucket.confidence)
+                }}</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="dig-foot">
+      Netos sin el fee de data: el fee se cobra por cuenta y periodo, no por operación, así que no
+      es imputable a un grupo. Las filas en gris tienen muestra insuficiente.
+    </p>
+  }
+</section>

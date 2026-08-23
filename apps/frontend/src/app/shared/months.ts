@@ -36,6 +36,9 @@ export const monthNamesShort = [
   'Dic',
 ] as const;
 
+/** Abreviaturas de los días de la semana; el índice 0 es Domingo, como `getUTCDay()`. */
+export const weekdayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as const;
+
 export const monthsPerYear = 12;
 
 /** Opción de un `<select>` de mes: el valor es 1–12 y la etiqueta el nombre. */

@@ -30,6 +30,7 @@ model User {
   trackerAccounts  TrackerAccount[]
   refreshTokens    RefreshToken[]
   capitalMovements CapitalMovement[]
+  mentorReports    MentorReport[]
 
   @@map("users")
 }
@@ -88,6 +89,7 @@ model Account {
   trades           Trade[]
   dataFeeCharges   DataFeeCharge[]
   capitalMovements CapitalMovement[]
+  mentorReports    MentorReport[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -355,4 +357,56 @@ model ImportBatch {
 
   @@index([userId, createdAt])
   @@map("import_batches")
+}
+
+// =====================================================================
+// Mentor Mode (coaching con IA sobre el digest determinista)
+// =====================================================================
+
+enum MentorReportStatus {
+  // Reserva creada antes de llamar al proveedor: da idempotencia y cupo atómico.
+  PENDING
+  OK
+  NO_ADVICE
+  FAILED
+}
+
+model MentorReport {
+  id        String  @id @default(uuid()) @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  // Nulo cuando el informe cubre todas las cuentas del usuario.
+  accountId String? @map("account_id") @db.Uuid
+  // Clave estable del alcance de cuentas: el id de la cuenta, o 'ALL'.
+  accountSetKey String @map("account_set_key")
+  accountLabel  String @map("account_label")
+
+  periodLabel String   @map("period_label")
+  periodFrom  DateTime @map("period_from") @db.Timestamptz(3)
+  periodTo    DateTime @map("period_to") @db.Timestamptz(3)
+
+  digestVersion Int    @map("digest_version")
+  promptVersion Int    @map("prompt_version")
+  digestHash    String @map("digest_hash")
+  digest        Json
+  advice        Json?
+
+  status MentorReportStatus @default(PENDING)
+  model  String?
+
+  inputTokens      Int?     @map("input_tokens")
+  outputTokens     Int?     @map("output_tokens")
+  estimatedCostUsd Decimal? @map("estimated_cost_usd") @db.Decimal(12, 6)
+
+  trades            Int      @default(0)
+  netBeforeDataFees Decimal  @default(0) @map("net_before_data_fees") @db.Decimal(18, 2)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  // Idempotencia: dos POST simultáneos del mismo digest colisionan aquí en vez
+  // de persistir dos informes y pagar dos llamadas.
+  @@unique([userId, accountSetKey, periodLabel, digestVersion, promptVersion, digestHash], name: "mentorReportIdentity")
+  @@index([userId, createdAt])
+  @@map("mentor_reports")
 }

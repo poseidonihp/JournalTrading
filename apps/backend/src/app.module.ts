@@ -10,6 +10,7 @@ import { InstrumentsModule } from './modules/instruments/instruments.module';
 import { TradesModule } from './modules/trades/trades.module';
 import { TradeMediaModule } from './modules/trade-media/trade-media.module';
 import { InsightsModule } from './modules/insights/insights.module';
+import { MentorModule } from './modules/mentor/mentor.module';
 import { TradeTypesModule } from './modules/trade-types/trade-types.module';
 import { TrackerAccountsModule } from './modules/tracker-accounts/tracker-accounts.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
@@ -41,6 +42,7 @@ import { validateEnv } from './config/env.validation';
     TradesModule,
     TradeMediaModule,
     InsightsModule,
+    MentorModule,
     TradeTypesModule,
     TrackerAccountsModule,
     SessionsModule,

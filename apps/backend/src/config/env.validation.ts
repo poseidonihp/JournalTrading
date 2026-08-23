@@ -19,16 +19,16 @@ const envSchema = z
     COOKIE_SECURE: z
       .string()
       .default('false')
-      .transform((v) => v === 'true'),
+      .transform(v => v === 'true'),
     COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
     // Orígenes permitidos por CORS, separados por coma.
     CORS_ORIGINS: z
       .string()
       .default('http://localhost:4200')
-      .transform((v) =>
+      .transform(v =>
         v
           .split(',')
-          .map((o) => o.trim())
+          .map(o => o.trim())
           .filter(Boolean),
       ),
     RSA_PRIVATE_KEY_B64: z
@@ -41,8 +41,27 @@ const envSchema = z
     // lea de process.env: ConfigModule sólo propaga a process.env las claves que
     // devuelve este validador, y Zod descarta las no declaradas.
     STORAGE_ROOT: z.string().optional(),
+    OPENAI_API_KEY: z.string().optional(),
+    OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
+    OPENAI_MODEL: z.string().optional(),
+    OPENAI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
+    OPENAI_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
+    OPENAI_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(3000),
+    MENTOR_MIN_TRADES: z.coerce.number().int().positive().default(20),
+    MENTOR_MAX_DIGEST_CHARS: z.coerce.number().int().positive().default(240_000),
+    MENTOR_DAILY_LIMIT: z.coerce.number().int().positive().default(20),
+    MENTOR_PRICE_INPUT_PER_MTOK: z.coerce.number().min(0).default(0),
+    MENTOR_PRICE_OUTPUT_PER_MTOK: z.coerce.number().min(0).default(0),
   })
   .superRefine((env, ctx) => {
+    // Coherencia del bloque Mentor: con key pero sin modelo no hay nada que llamar.
+    if (env.OPENAI_API_KEY && !env.OPENAI_MODEL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OPENAI_MODEL'],
+        message: 'OPENAI_MODEL es requerido cuando OPENAI_API_KEY está definida',
+      });
+    }
     if (env.NODE_ENV === 'production') {
       if (!env.COOKIE_SECURE) {
         ctx.addIssue({
@@ -66,9 +85,7 @@ export type Env = z.infer<typeof envSchema>;
 export function validateEnv(config: Record<string, unknown>): Env {
   const result = envSchema.safeParse(config);
   if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-      .join('\n');
+    const issues = result.error.issues.map(i => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Invalid environment variables:\n${issues}`);
   }
   return result.data;

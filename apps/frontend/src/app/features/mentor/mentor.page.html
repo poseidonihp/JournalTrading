@@ -1,0 +1,151 @@
+<div class="mentor-shell">
+  <header class="mentor-header">
+    <div>
+      <div class="uplabel">Workspace</div>
+      <h1 class="serif mentor-h1">Mentor Mode</h1>
+    </div>
+
+    <div class="mentor-toolbar">
+      <journal-month-picker
+        [year]="year()"
+        [month]="month()"
+        [availableMonths]="monthKeys()"
+        [allowAllYears]="true"
+        [allowAllMonths]="true"
+        (selectionChange)="onPeriodChange($event)"
+      />
+      <div class="mentor-generate">
+        <journal-submit-button
+          type="button"
+          label="Generar análisis"
+          loadingLabel="Analizando…"
+          [loading]="generating()"
+          [disabled]="!canGenerate()"
+          [icon]="iconSparkles"
+          (clicked)="onGenerate()"
+        />
+        @if (status(); as info) {
+          <span class="mentor-model">
+            @if (info.enabled && info.model) {
+              {{ info.model }}
+            } @else {
+              Sin IA configurada · sólo datos
+            }
+          </span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <div class="mentor-scroll">
+    <journal-error-banner [message]="error()" />
+
+    @if (mixedCurrencies()) {
+      <p class="mentor-notice mentor-notice-block">
+        El alcance mezcla cuentas con monedas distintas. Elige una cuenta para poder generar el
+        análisis; los números de abajo no son comparables entre sí.
+      </p>
+    } @else if (allAccountsWarning()) {
+      <p class="mentor-notice">
+        Estás viendo todas las cuentas juntas. Mezclar una evaluación de prop firm con una cuenta
+        real produce consejos poco accionables: para coaching, elige una sola cuenta.
+      </p>
+    }
+
+    @if (importedWarning(); as mix) {
+      <p class="mentor-notice">
+        {{ mix.importedPct }}% de los trades del periodo entraron por importación y no tienen
+        emoción ni motivo de salida revisados. Están agrupados aparte como «Sin revisar».
+      </p>
+    }
+
+    @if (blocked(); as info) {
+      <section class="card-panel mentor-blocked">
+        <h2 class="serif mentor-blocked-title">Todavía no hay suficiente para analizar</h2>
+        <p class="mentor-blocked-text">
+          {{ info.message }}
+          @if (info.minTrades) {
+            Este periodo tiene {{ overall()?.trades ?? 0 }} de los {{ info.minTrades }} necesarios.
+          }
+        </p>
+      </section>
+    }
+
+    @if (loading() && !digest()) {
+      <div class="card-panel mentor-skeleton">
+        <journal-skeleton [rows]="3" height="18px" />
+        <journal-skeleton [rows]="6" height="34px" />
+      </div>
+    } @else if (digest(); as data) {
+      <section class="card-panel mentor-summary">
+        <div class="mentor-summary-main">
+          <span class="uplabel">{{ data.period.label }} · {{ data.accountLabel }}</span>
+          <span
+            class="stat-value"
+            [class.positive]="+data.overall.netAfterDataFees > 0"
+            [class.negative]="+data.overall.netAfterDataFees < 0"
+          >
+            {{ formatUsd(data.overall.netAfterDataFees) }}
+          </span>
+          <span class="mentor-summary-note">Neto con fee de data descontado</span>
+        </div>
+        <dl class="mentor-summary-stats">
+          <div>
+            <dt>Trades</dt>
+            <dd>{{ data.overall.trades }}</dd>
+          </div>
+          <div>
+            <dt>Días operados</dt>
+            <dd>{{ data.overall.tradingDays }}</dd>
+          </div>
+          <div>
+            <dt>Trades/día</dt>
+            <dd>{{ data.overall.avgTradesPerDay }}</dd>
+          </div>
+          <div>
+            <dt>Neto sin fee</dt>
+            <dd>{{ formatUsd(data.overall.netBeforeDataFees) }}</dd>
+          </div>
+          <div>
+            <dt>Fee de data</dt>
+            <dd>{{ formatUsd(data.overall.dataFees) }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <div class="mentor-grid">
+        <div class="mentor-main">
+          @if (generating()) {
+            <div class="card-panel mentor-skeleton">
+              <journal-skeleton [rows]="2" height="22px" />
+              <journal-skeleton [rows]="4" height="16px" />
+            </div>
+          } @else {
+            <app-mentor-verdict
+              [advice]="advice()"
+              [digest]="data"
+              [model]="report()?.model ?? null"
+            />
+          }
+
+          <app-mentor-eliminate [digest]="data" [advice]="advice()" />
+
+          @if (advice()) {
+            <app-mentor-leaks [advice]="advice()" [digest]="data" />
+          }
+
+          <app-mentor-digest [digest]="data" />
+        </div>
+
+        <aside class="mentor-rail">
+          <app-mentor-history
+            [reports]="history()"
+            [activeId]="activeReportId()"
+            (opened)="onOpen($event)"
+            (removed)="onRemove($event)"
+          />
+        </aside>
+      </div>
+    }
+  </div>
+</div>

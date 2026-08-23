@@ -1,0 +1,113 @@
+:host {
+  display: block;
+}
+
+.leaks {
+  padding: 20px;
+}
+
+.leaks-head {
+  margin-bottom: 12px;
+}
+
+.leaks-title {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.leaks-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--qp-mute);
+}
+
+.leaks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.leaks-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-bg);
+}
+
+.leaks-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--qp-ink);
+}
+
+.leaks-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.leaks-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--qp-ink-soft);
+}
+
+.leaks-dim {
+  font-size: 10.5px;
+  color: var(--qp-mute-2);
+}
+
+.leaks-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 10px 0 0;
+}
+
+.leaks-stats dt {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--qp-mute-2);
+}
+
+.leaks-stats dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.leaks-unverified {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--qp-mute-2);
+}
+
+.conf {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.conf-high {
+  background: color-mix(in srgb, var(--qp-sage) 16%, transparent);
+  color: var(--qp-sage);
+}
+
+.conf-medium {
+  background: color-mix(in srgb, var(--qp-mute) 18%, transparent);
+  color: var(--qp-ink-soft);
+}
+
+.conf-low {
+  background: color-mix(in srgb, var(--qp-mute-2) 14%, transparent);
+  color: var(--qp-mute-2);
+}

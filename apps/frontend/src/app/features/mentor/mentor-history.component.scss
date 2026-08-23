@@ -1,0 +1,99 @@
+:host {
+  display: block;
+}
+
+.hist {
+  padding: 18px;
+}
+
+.hist-head {
+  margin-bottom: 10px;
+}
+
+.hist-title {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.hist-empty {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--qp-mute);
+}
+
+.hist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hist-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.hist-item:hover {
+  background: var(--qp-bg-active);
+}
+
+.hist-active {
+  border-color: var(--qp-line-strong);
+  background: var(--qp-bg);
+}
+
+.hist-open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.hist-period {
+  font-size: 13px;
+  color: var(--qp-ink);
+}
+
+.hist-meta {
+  font-size: 10.5px;
+  color: var(--qp-mute-2);
+}
+
+.hist-stats {
+  font-size: 11px;
+  color: var(--qp-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.hist-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--qp-mute-2) 16%, transparent);
+  color: var(--qp-mute-2);
+  font-size: 9.5px;
+}
+
+.hist-delete {
+  width: 26px;
+  height: 26px;
+  margin-right: 8px;
+  flex: 0 0 auto;
+  color: var(--qp-mute-2);
+}
+
+.hist-delete:hover {
+  color: var(--qp-clay);
+}

@@ -105,11 +105,11 @@ export class AppShellComponent {
     { label: 'Tipos de trade', route: '/tipos-trade' },
     { label: 'Usuarios', route: '/users' },
     { label: 'Reports', route: '/reports' },
+    { label: 'Mentor Mode', route: '/mentor' },
     { label: 'Tracker', route: '/tracker' },
     { label: 'Accounts', route: '/accounts' },
     { label: 'Playbooks', route: '/playbooks', disabled: true },
     { label: 'Trade Replay', route: '/replay', disabled: true },
-    { label: 'Mentor Mode', route: '/mentor', disabled: true },
     { label: 'Resource Center', route: '/resources', disabled: true },
   ];
 

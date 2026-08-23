@@ -6,69 +6,67 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     canActivate: [guestGuard],
-    loadComponent: () => import('./features/landing/landing.page').then(m => m.LandingPage),
+    loadComponent: () => import('./features/landing/landing.page').then((m) => m.LandingPage),
   },
   {
     path: 'login',
     canActivate: [guestGuard],
-    loadComponent: () =>
-      import('./features/auth/login.component').then(m => m.LoginComponent),
+    loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
   },
   {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./core/layout/app-shell.component').then(m => m.AppShellComponent),
+      import('./core/layout/app-shell.component').then((m) => m.AppShellComponent),
     children: [
       {
         path: 'tracker',
-        loadComponent: () =>
-          import('./features/tracker/tracker.page').then(m => m.TrackerPage),
+        loadComponent: () => import('./features/tracker/tracker.page').then((m) => m.TrackerPage),
       },
       {
         path: 'accounts',
         loadComponent: () =>
-          import('./features/accounts/accounts.page').then(m => m.AccountsPage),
+          import('./features/accounts/accounts.page').then((m) => m.AccountsPage),
       },
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./features/dashboard/dashboard.page').then(m => m.DashboardPage),
+          import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage),
       },
       {
         path: 'trades',
-        loadComponent: () =>
-          import('./features/trades/trades.page').then(m => m.TradesPage),
+        loadComponent: () => import('./features/trades/trades.page').then((m) => m.TradesPage),
       },
       {
         path: 'notebook',
         loadComponent: () =>
-          import('./features/notebook/notebook.page').then(m => m.NotebookPage),
+          import('./features/notebook/notebook.page').then((m) => m.NotebookPage),
       },
       {
         path: 'capital',
-        loadComponent: () =>
-          import('./features/capital/capital.page').then(m => m.CapitalPage),
+        loadComponent: () => import('./features/capital/capital.page').then((m) => m.CapitalPage),
       },
       {
         path: 'instruments',
         loadComponent: () =>
-          import('./features/instruments/instruments.page').then(m => m.InstrumentsPage),
+          import('./features/instruments/instruments.page').then((m) => m.InstrumentsPage),
       },
       {
         path: 'tipos-trade',
         loadComponent: () =>
-          import('./features/trade-types/trade-types.page').then(m => m.TradeTypesPage),
+          import('./features/trade-types/trade-types.page').then((m) => m.TradeTypesPage),
       },
       {
         path: 'reports',
-        loadComponent: () =>
-          import('./features/reports/reports.page').then(m => m.ReportsPage),
+        loadComponent: () => import('./features/reports/reports.page').then((m) => m.ReportsPage),
+      },
+      {
+        path: 'mentor',
+        loadComponent: () => import('./features/mentor/mentor.page').then((m) => m.MentorPage),
       },
       {
         path: 'users',
-        loadComponent: () =>
-          import('./features/users/users.page').then(m => m.UsersPage),
+        loadComponent: () => import('./features/users/users.page').then((m) => m.UsersPage),
       },
     ],
   },

@@ -1,0 +1,37 @@
+<section class="card-panel hist">
+  <header class="hist-head">
+    <div class="uplabel">Historial</div>
+    <h2 class="serif hist-title">Informes anteriores</h2>
+  </header>
+
+  @if (reports().length === 0) {
+    <p class="hist-empty">Todavía no has generado ningún análisis.</p>
+  } @else {
+    <ul class="hist-list">
+      @for (report of reports(); track report.id) {
+        <li class="hist-item" [class.hist-active]="report.id === activeId()">
+          <button type="button" class="hist-open" (click)="opened.emit(report.id)">
+            <span class="hist-period">{{ report.periodLabel }}</span>
+            <span class="hist-meta"
+              >{{ report.accountLabel }} · {{ formatDate(report.createdAt) }}</span
+            >
+            <span class="hist-stats">
+              {{ report.trades }} ops · {{ formatUsd(report.netBeforeDataFees) }}
+              @if (report.status === 'NO_ADVICE') {
+                <span class="hist-tag">sólo datos</span>
+              }
+            </span>
+          </button>
+          <button
+            type="button"
+            class="icon-btn hist-delete"
+            aria-label="Eliminar informe"
+            (click)="removed.emit(report.id)"
+          >
+            <lucide-icon [name]="iconTrash" class="h-3.5 w-3.5"></lucide-icon>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>

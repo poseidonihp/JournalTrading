@@ -1,0 +1,118 @@
+<section class="card-panel elim">
+  <header class="elim-head">
+    <div>
+      <div class="uplabel">Impacto</div>
+      <h2 class="serif elim-title">Qué eliminar</h2>
+    </div>
+    <p class="elim-disclaimer">
+      Contrafáctico, no pronóstico: asume que el resto de la operativa no habría cambiado. Los netos
+      van sin el fee de data.
+    </p>
+  </header>
+
+  @if (rows().length === 0) {
+    <p class="elim-empty">
+      No hay ningún grupo perdedor con muestra suficiente en este periodo. Es una buena noticia.
+    </p>
+  } @else {
+    <journal-chart [options]="chartOptions()" [height]="chartHeight()" />
+
+    <div class="elim-scroll">
+      <table class="elim-table">
+        <thead>
+          <tr>
+            <th scope="col">Qué</th>
+            <th scope="col" class="num">Ops</th>
+            <th scope="col" class="num">Neto actual</th>
+            <th scope="col" class="num">Neto sin eso</th>
+            <th scope="col" class="num">Δ</th>
+            <th scope="col">Confianza</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.dimensionId + row.bucketKey) {
+            <tr
+              class="elim-row"
+              tabindex="0"
+              (click)="toggle(row)"
+              (keydown)="onRowKeyDown($event, row)"
+            >
+              <td>
+                <div class="elim-what">
+                  <span class="elim-label">{{ row.label }}</span>
+                  <span class="elim-dim">{{ row.dimensionLabel }}</span>
+                </div>
+                @if (row.note) {
+                  <p class="elim-note">{{ row.note }}</p>
+                }
+              </td>
+              <td class="num">{{ row.trades }}</td>
+              <td class="num negative">{{ formatUsd(row.netBeforeDataFees) }}</td>
+              <td class="num">{{ formatUsd(row.netWithoutBucket) }}</td>
+              <td class="num positive">+{{ formatUsd(row.delta) }}</td>
+              <td>
+                <span [class]="confidenceClass(row.confidence)">{{
+                  confidenceLabel(row.confidence)
+                }}</span>
+              </td>
+            </tr>
+            @if (isExpanded(row) && row.bucket; as bucket) {
+              <tr class="elim-detail">
+                <td colspan="6">
+                  <dl class="elim-stats">
+                    <div>
+                      <dt>Ganadores</dt>
+                      <dd>{{ bucket.wins }}</dd>
+                    </div>
+                    <div>
+                      <dt>Perdedores</dt>
+                      <dd>{{ bucket.losses }}</dd>
+                    </div>
+                    <div>
+                      <dt>Scratch</dt>
+                      <dd>{{ bucket.breakEven }}</dd>
+                    </div>
+                    <div>
+                      <dt>Win rate</dt>
+                      <dd [class]="winRateClass(bucket.winRate)">
+                        {{ formatPct(bucket.winRate) }}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Profit factor</dt>
+                      <dd>{{ formatPf(bucket.profitFactor) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Ganancia media</dt>
+                      <dd>{{ formatUsd(bucket.avgWin) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Pérdida media</dt>
+                      <dd>{{ formatUsd(bucket.avgLoss) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Neto por trade</dt>
+                      <dd>{{ formatUsd(bucket.expectancy) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Peso en el P&L</dt>
+                      <dd>{{ formatPct(bucket.sharePct) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Mayor trade</dt>
+                      <dd>{{ formatPct(bucket.topTradeConcentrationPct) }} del bucket</dd>
+                    </div>
+                  </dl>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="elim-foot">
+      Los impactos no se suman entre dimensiones: «tras una pérdida» y «error emocional» se solapan.
+      Toca una fila para ver los números reales del grupo.
+    </p>
+  }
+</section>

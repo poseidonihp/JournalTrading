@@ -1,0 +1,169 @@
+:host {
+  display: block;
+}
+
+.elim {
+  padding: 20px;
+}
+
+.elim-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.elim-title {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.elim-disclaimer {
+  max-width: 46ch;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--qp-mute-2);
+}
+
+.elim-empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--qp-mute);
+}
+
+.elim-scroll {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.elim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.elim-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--qp-mute-2);
+  border-bottom: 1px solid var(--qp-line);
+  white-space: nowrap;
+}
+
+.elim-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--qp-line);
+  vertical-align: top;
+}
+
+.elim-table th.num,
+.elim-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.elim-row {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.elim-row:hover {
+  background: var(--qp-bg-active);
+}
+
+.elim-what {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.elim-label {
+  color: var(--qp-ink);
+  font-weight: 600;
+}
+
+.elim-dim {
+  font-size: 10.5px;
+  color: var(--qp-mute-2);
+}
+
+.elim-note {
+  max-width: 52ch;
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--qp-line-strong);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--qp-ink-soft);
+}
+
+.positive {
+  color: var(--qp-sage);
+}
+
+.negative {
+  color: var(--qp-clay);
+}
+
+.elim-detail td {
+  background: var(--qp-bg);
+}
+
+.elim-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px 20px;
+  margin: 0;
+}
+
+.elim-stats dt {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--qp-mute-2);
+}
+
+.elim-stats dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.conf {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.conf-high {
+  background: color-mix(in srgb, var(--qp-sage) 16%, transparent);
+  color: var(--qp-sage);
+}
+
+.conf-medium {
+  background: color-mix(in srgb, var(--qp-mute) 18%, transparent);
+  color: var(--qp-ink-soft);
+}
+
+.conf-low {
+  background: color-mix(in srgb, var(--qp-mute-2) 14%, transparent);
+  color: var(--qp-mute-2);
+}
+
+.elim-foot {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--qp-mute-2);
+}

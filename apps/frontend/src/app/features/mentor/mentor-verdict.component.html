@@ -1,0 +1,58 @@
+<section class="card-panel verdict">
+  @if (advice(); as note) {
+    <header class="verdict-head">
+      <div class="uplabel">Veredicto</div>
+      @if (model(); as name) {
+        <span class="verdict-model">{{ name }}</span>
+      }
+    </header>
+
+    <p class="serif verdict-diagnosis">{{ note.diagnosis.text }}</p>
+    @if (diagnosisRefs().length > 0) {
+      <div class="verdict-refs">
+        @for (ref of diagnosisRefs(); track ref.label) {
+          <span class="ref-chip">{{ ref.label }}</span>
+        }
+      </div>
+    }
+
+    @if (note.rules.length > 0) {
+      <ol class="verdict-rules">
+        @for (rule of note.rules; track $index) {
+          <li>
+            <span class="verdict-rule-text">{{ rule.text }}</span>
+            @if (refsOf($index).length > 0) {
+              <span class="verdict-refs">
+                @for (ref of refsOf($index); track ref.label) {
+                  <span class="ref-chip">{{ ref.label }}</span>
+                }
+              </span>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    <div class="verdict-focus">
+      <span class="uplabel">Foco</span>
+      <p class="verdict-focus-text">{{ note.focus.text }}</p>
+      @if (focusRefs().length > 0) {
+        <div class="verdict-refs">
+          @for (ref of focusRefs(); track ref.label) {
+            <span class="ref-chip">{{ ref.label }}</span>
+          }
+        </div>
+      }
+    </div>
+
+    <p class="verdict-disclaimer">{{ disclaimer }}</p>
+  } @else {
+    <header class="verdict-head">
+      <div class="uplabel">Veredicto</div>
+    </header>
+    <p class="verdict-placeholder">
+      Todavía no hay análisis para este periodo. Los números de abajo son del digest y ya están
+      calculados: el análisis sólo añade el criterio.
+    </p>
+  }
+</section>

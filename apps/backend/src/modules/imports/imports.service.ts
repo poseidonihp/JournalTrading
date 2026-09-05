@@ -57,13 +57,13 @@ export class ImportsService {
           errorMessage: parseErrors[0]?.message ?? 'No se pudo parsear el CSV',
         },
       });
-      return { batch: this.toDto(batch), errors: parseErrors };
+      return { batch: this._toDto(batch), errors: parseErrors };
     }
 
     const instruments = await this.prisma.instrument.findMany();
     const instrumentBySymbol = new Map(instruments.map((i) => [i.symbol.toUpperCase(), i]));
 
-    const tradeTypeId = await this.resolveDefaultTradeTypeId(userId);
+    const tradeTypeId = await this._resolveDefaultTradeTypeId(userId);
     if (!tradeTypeId) {
       throw new BadRequestException(
         'No hay tipos de trade configurados para este usuario. Crea al menos uno antes de importar.',
@@ -94,7 +94,7 @@ export class ImportsService {
             continue;
           }
         }
-        await this.createTradeFromRow(userId, accountId, instrument, tradeTypeId, row);
+        await this._createTradeFromRow(userId, accountId, instrument, tradeTypeId, row);
         imported += 1;
       } catch (e) {
         skipped += 1;
@@ -105,7 +105,7 @@ export class ImportsService {
       }
     }
 
-    const status = ImportsService.computeStatus(imported, skipped, totalRows);
+    const status = ImportsService._computeStatus(imported, skipped, totalRows);
     const batch = await this.prisma.importBatch.create({
       data: {
         userId,
@@ -125,10 +125,10 @@ export class ImportsService {
             : null,
       },
     });
-    return { batch: this.toDto(batch), errors };
+    return { batch: this._toDto(batch), errors };
   }
 
-  private async resolveDefaultTradeTypeId(userId: string): Promise<string | null> {
+  private async _resolveDefaultTradeTypeId(userId: string): Promise<string | null> {
     const byCode = await this.prisma.tradeType.findFirst({
       where: { userId, code: DEFAULT_TRADE_TYPE_CODE },
       select: { id: true },
@@ -142,7 +142,7 @@ export class ImportsService {
     return any?.id ?? null;
   }
 
-  private async createTradeFromRow(
+  private async _createTradeFromRow(
     userId: string,
     accountId: string,
     instrument: {
@@ -184,6 +184,10 @@ export class ImportsService {
         exitReason: DEFAULT_EXIT_REASON,
         emotion: DEFAULT_EMOTION,
         pointsTotal: points.toString(),
+        entryPrice: row.entryPrice.toString(),
+        exitPrice: row.exitPrice.toString(),
+        mae: row.mae !== null ? row.mae.toString() : null,
+        mfe: row.mfe !== null ? row.mfe.toString() : null,
         pointValueSnapshot: pointValue.toString(),
         gross: gross.toFixed(2),
         commission: commission.toFixed(2),
@@ -194,7 +198,7 @@ export class ImportsService {
     });
   }
 
-  private static computeStatus(
+  private static _computeStatus(
     imported: number,
     skipped: number,
     total: number,
@@ -204,7 +208,7 @@ export class ImportsService {
     return 'SUCCESS';
   }
 
-  private toDto(b: {
+  private _toDto(b: {
     id: string;
     accountId: string;
     source: string;
@@ -233,6 +237,6 @@ export class ImportsService {
   async findOrThrow(userId: string, id: string): Promise<ImportBatch> {
     const row = await this.prisma.importBatch.findFirst({ where: { id, userId } });
     if (!row) throw new NotFoundException('Batch no encontrado');
-    return this.toDto(row);
+    return this._toDto(row);
   }
 }

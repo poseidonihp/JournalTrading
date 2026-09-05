@@ -10,6 +10,7 @@
  *   - Entry time / Exit time   (dd/mm/yyyy hh:mm:ss o yyyy-mm-dd hh:mm:ss)
  *   - Profit              → P&L en dólares (puede traer $ y comas)
  *   - Commission          → comisión total
+ *   - MAE / MFE           → excursión máxima en contra y a favor (opcionales)
  *   - Trade number        → id externo para dedupe
  */
 
@@ -24,6 +25,9 @@ export interface ParsedTradeRow {
   exitedAt: Date;
   entryPrice: number;
   exitPrice: number;
+  /** Excursión en la unidad que exporte NinjaTrader; null si la columna falta. */
+  mae: number | null;
+  mfe: number | null;
   pointsTotal: number;
   grossOverride: number | null;
   commission: number;
@@ -48,6 +52,8 @@ const HEADER_ALIASES: Record<string, string[]> = {
   exitPrice: ['exit price', 'exitprice'],
   entryTime: ['entry time', 'entrytime', 'entered at'],
   exitTime: ['exit time', 'exittime', 'exited at'],
+  mae: ['mae', 'max. adverse excursion', 'maximum adverse excursion'],
+  mfe: ['mfe', 'max. favorable excursion', 'maximum favorable excursion'],
   profit: ['profit', 'p&l', 'pnl', 'net'],
   commission: ['commission', 'comm.', 'fee'],
   tradeNumber: ['trade number', 'trade #', 'id'],
@@ -135,13 +141,15 @@ function parseRow(
   if (!symbolRaw) return null;
 
   const dir = normalizeDirection(get('marketPos'));
-  const qty = parseInt(get('qty'), 10);
+  const qty = Number.parseInt(get('qty'), 10);
   if (!Number.isFinite(qty) || qty <= 0) {
     throw new Error(`Cantidad inválida: "${get('qty')}"`);
   }
 
   const entryPrice = parseNumeric(get('entryPrice'));
   const exitPrice = parseNumeric(get('exitPrice'));
+  const mae = parseOptionalMagnitude(get('mae'));
+  const mfe = parseOptionalMagnitude(get('mfe'));
   const enteredAt = parseDate(get('entryTime'));
   const exitedAt = parseDate(get('exitTime'));
   const commission = idx.commission !== undefined ? Math.abs(parseNumeric(get('commission'))) : 0;
@@ -166,7 +174,17 @@ function parseRow(
     pointsTotal,
     grossOverride,
     commission,
+    mae,
+    mfe,
   };
+}
+
+/** Excursión opcional: celda vacía es null, y el signo se descarta. */
+function parseOptionalMagnitude(raw: string): number | null {
+  if (!raw) {
+    return null;
+  }
+  return Math.abs(parseNumeric(raw));
 }
 
 function extractSymbolBase(symbol: string): string {

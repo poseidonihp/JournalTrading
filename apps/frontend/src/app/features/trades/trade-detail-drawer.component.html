@@ -90,6 +90,48 @@
       </div>
     </section>
 
+    @if (hasPriceData()) {
+      <section class="mt-6">
+        <div class="uplabel mb-2">Precios y excursión</div>
+        @if (trade().entryPrice; as entryPrice) {
+          <div class="meta-row">
+            <span class="meta-label">Precio de entrada</span>
+            <span class="meta-value">{{ entryPrice }}</span>
+          </div>
+        }
+        @if (trade().exitPrice; as exitPrice) {
+          <div class="meta-row">
+            <span class="meta-label">Precio de salida</span>
+            <span class="meta-value">{{ exitPrice }}</span>
+          </div>
+        }
+        @if (trade().plannedStop; as plannedStop) {
+          <div class="meta-row">
+            <span class="meta-label">Stop planeado</span>
+            <span class="meta-value">{{ plannedStop }}</span>
+          </div>
+        }
+        @if (trade().plannedTarget; as plannedTarget) {
+          <div class="meta-row">
+            <span class="meta-label">Target planeado</span>
+            <span class="meta-value">{{ plannedTarget }}</span>
+          </div>
+        }
+        @if (trade().mae; as mae) {
+          <div class="meta-row">
+            <span class="meta-label">MAE</span>
+            <span class="meta-value">{{ mae }} pts en contra</span>
+          </div>
+        }
+        @if (trade().mfe; as mfe) {
+          <div class="meta-row">
+            <span class="meta-label">MFE</span>
+            <span class="meta-value">{{ mfe }} pts a favor</span>
+          </div>
+        }
+      </section>
+    }
+
     @if (trade().entryReason) {
       <section class="mt-6">
         <div class="uplabel mb-2">Razón de entrada</div>

@@ -55,3 +55,15 @@
 .media-tile:hover .media-remove {
   display: grid;
 }
+.form-section {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--qp-line);
+}
+.form-section-hint {
+  font-size: 11px;
+  color: var(--qp-mute);
+}

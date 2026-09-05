@@ -41,7 +41,7 @@ export class TradesService {
   // ------------------------------------------------------------------
 
   async list(userId: string, filters: TradeFilters): Promise<TradeListResponse> {
-    const where = this.buildWhere(userId, filters);
+    const where = this._buildWhere(userId, filters);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.trade.findMany({
         where,
@@ -53,7 +53,7 @@ export class TradesService {
       this.prisma.trade.count({ where }),
     ]);
     return {
-      items: items.map((t) => this.toDto(t)),
+      items: items.map((t) => this._toDto(t)),
       total,
       page: filters.page,
       pageSize: filters.pageSize,
@@ -66,17 +66,17 @@ export class TradesService {
       include: TRADE_INCLUDE,
     });
     if (!trade) throw new NotFoundException('Trade no encontrado');
-    return this.toDto(trade);
+    return this._toDto(trade);
   }
 
   /** Para export CSV (sin paginación). */
   async listAllForExport(userId: string, filters: TradeFilters): Promise<Trade[]> {
     const rows = await this.prisma.trade.findMany({
-      where: this.buildWhere(userId, filters),
+      where: this._buildWhere(userId, filters),
       include: TRADE_INCLUDE,
       orderBy: [{ enteredAt: 'asc' }, { id: 'asc' }],
     });
-    return rows.map((t) => this.toDto(t));
+    return rows.map((t) => this._toDto(t));
   }
 
   // ------------------------------------------------------------------
@@ -84,7 +84,7 @@ export class TradesService {
   // ------------------------------------------------------------------
 
   async create(userId: string, dto: CreateTradeDto): Promise<Trade> {
-    const { instrument, account, tradeType } = await this.loadRefs(
+    const { instrument, account, tradeType } = await this._loadRefs(
       userId,
       dto.accountId,
       dto.instrumentId,
@@ -94,14 +94,14 @@ export class TradesService {
     const pointValue = new Prisma.Decimal(instrument.pointValue);
     const points = new Prisma.Decimal(dto.pointsTotal);
     const commission = new Prisma.Decimal(
-      dto.commission ?? this.defaultCommissionFor(instrument, dto.contracts),
+      dto.commission ?? this._defaultCommissionFor(instrument, dto.contracts),
     );
     const gross = dto.grossOverride
       ? new Prisma.Decimal(dto.grossOverride)
       : points.mul(pointValue).mul(dto.contracts);
     const net = dto.netOverride ? new Prisma.Decimal(dto.netOverride) : gross.minus(commission);
 
-    const durationSeconds = TradesService.diffSeconds(dto.enteredAt, dto.exitedAt);
+    const durationSeconds = TradesService._diffSeconds(dto.enteredAt, dto.exitedAt);
 
     const created = await this.prisma.trade.create({
       data: {
@@ -118,6 +118,12 @@ export class TradesService {
         exitReason: dto.exitReason,
         emotion: dto.emotion,
         pointsTotal: points.toString(),
+        entryPrice: dto.entryPrice ?? null,
+        exitPrice: dto.exitPrice ?? null,
+        plannedStop: dto.plannedStop ?? null,
+        plannedTarget: dto.plannedTarget ?? null,
+        mae: dto.mae ?? null,
+        mfe: dto.mfe ?? null,
         pointValueSnapshot: pointValue.toString(),
         gross: gross.toFixed(2),
         commission: commission.toFixed(2),
@@ -127,7 +133,7 @@ export class TradesService {
       },
       include: TRADE_INCLUDE,
     });
-    return this.toDto(created);
+    return this._toDto(created);
   }
 
   async update(userId: string, id: string, dto: UpdateTradeDto): Promise<Trade> {
@@ -147,7 +153,7 @@ export class TradesService {
       nextAccountId !== current.accountId ||
       nextTradeTypeId !== current.tradeTypeId;
     if (needsRefLoad) {
-      const refs = await this.loadRefs(userId, nextAccountId, nextInstrumentId, nextTradeTypeId);
+      const refs = await this._loadRefs(userId, nextAccountId, nextInstrumentId, nextTradeTypeId);
       if (nextInstrumentId !== current.instrumentId) {
         instrument = refs.instrument;
       }
@@ -183,6 +189,12 @@ export class TradesService {
         exitReason: dto.exitReason ?? current.exitReason,
         emotion: dto.emotion ?? current.emotion,
         pointsTotal: nextPoints.toString(),
+        entryPrice: TradesService._keepOrReplace(dto.entryPrice, current.entryPrice),
+        exitPrice: TradesService._keepOrReplace(dto.exitPrice, current.exitPrice),
+        plannedStop: TradesService._keepOrReplace(dto.plannedStop, current.plannedStop),
+        plannedTarget: TradesService._keepOrReplace(dto.plannedTarget, current.plannedTarget),
+        mae: TradesService._keepOrReplace(dto.mae, current.mae),
+        mfe: TradesService._keepOrReplace(dto.mfe, current.mfe),
         pointValueSnapshot: pointValue.toString(),
         gross: gross.toFixed(2),
         commission: nextCommission.toFixed(2),
@@ -191,7 +203,7 @@ export class TradesService {
       },
       include: TRADE_INCLUDE,
     });
-    return this.toDto(updated);
+    return this._toDto(updated);
   }
 
   async remove(userId: string, id: string): Promise<void> {
@@ -211,7 +223,7 @@ export class TradesService {
   // Helpers
   // ------------------------------------------------------------------
 
-  private buildWhere(userId: string, filters: TradeFilters): Prisma.TradeWhereInput {
+  private _buildWhere(userId: string, filters: TradeFilters): Prisma.TradeWhereInput {
     const where: Prisma.TradeWhereInput = { userId };
     if (filters.accountId) where.accountId = filters.accountId;
     if (filters.instrumentId) where.instrumentId = filters.instrumentId;
@@ -234,7 +246,7 @@ export class TradesService {
     return where;
   }
 
-  private async loadRefs(
+  private async _loadRefs(
     userId: string,
     accountId: string,
     instrumentId: string,
@@ -251,21 +263,34 @@ export class TradesService {
     return { account, instrument, tradeType };
   }
 
-  private defaultCommissionFor(
+  private _defaultCommissionFor(
     instrument: { defaultCommissionPerContract: Prisma.Decimal },
     contracts: number,
   ): string {
     return new Prisma.Decimal(instrument.defaultCommissionPerContract).mul(contracts).toFixed(4);
   }
 
-  private static diffSeconds(from: string, to: string): number {
+  /**
+   * Resuelve un decimal opcional en un update parcial.
+   * @param next - Valor recibido; `undefined` significa "campo no enviado"
+   * @param current - Valor guardado hoy
+   * @returns {string | Prisma.Decimal | null}
+   */
+  private static _keepOrReplace(
+    next: string | null | undefined,
+    current: Prisma.Decimal | null,
+  ): string | Prisma.Decimal | null {
+    return next === undefined ? current : next;
+  }
+
+  private static _diffSeconds(from: string, to: string): number {
     const a = new Date(from).getTime();
     const b = new Date(to).getTime();
     if (Number.isNaN(a) || Number.isNaN(b)) return 0;
     return Math.max(0, Math.floor((b - a) / 1000));
   }
 
-  private toDto(t: PrismaTradeWithRelations): Trade {
+  private _toDto(t: PrismaTradeWithRelations): Trade {
     return {
       id: t.id,
       accountId: t.accountId,
@@ -283,6 +308,12 @@ export class TradesService {
       exitReason: t.exitReason,
       emotion: t.emotion,
       pointsTotal: t.pointsTotal.toString(),
+      entryPrice: t.entryPrice?.toString() ?? null,
+      exitPrice: t.exitPrice?.toString() ?? null,
+      plannedStop: t.plannedStop?.toString() ?? null,
+      plannedTarget: t.plannedTarget?.toString() ?? null,
+      mae: t.mae?.toString() ?? null,
+      mfe: t.mfe?.toString() ?? null,
       pointValueSnapshot: t.pointValueSnapshot.toString(),
       gross: t.gross.toString(),
       commission: t.commission.toString(),
@@ -291,11 +322,11 @@ export class TradesService {
       source: t.source,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
-      media: t.media.map((m) => this.mediaToDto(m)),
+      media: t.media.map((m) => this._mediaToDto(m)),
     };
   }
 
-  private mediaToDto(m: PrismaTradeMedia): TradeMedia {
+  private _mediaToDto(m: PrismaTradeMedia): TradeMedia {
     return {
       id: m.id,
       tradeId: m.tradeId,

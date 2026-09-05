@@ -17,6 +17,12 @@ const HEADERS = [
   'Bruto',
   'Comisión',
   'Neto',
+  'Precio entrada',
+  'Precio salida',
+  'Stop planeado',
+  'Target planeado',
+  'MAE (pts)',
+  'MFE (pts)',
 ] as const;
 
 function escape(value: string | number): string {
@@ -59,6 +65,12 @@ export function tradesToCsv(trades: Trade[]): string {
       t.gross,
       t.commission,
       t.net,
+      t.entryPrice ?? '',
+      t.exitPrice ?? '',
+      t.plannedStop ?? '',
+      t.plannedTarget ?? '',
+      t.mae ?? '',
+      t.mfe ?? '',
     ];
     lines.push(row.map(escape).join(','));
   }

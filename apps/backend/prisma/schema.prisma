@@ -212,6 +212,14 @@ model Trade {
   exitReason         ExitReason     @map("exit_reason")
   emotion            Emotion
   pointsTotal        Decimal        @map("points_total") @db.Decimal(18, 4)
+  // Precios ejecutados y niveles planeados; nulos en los trades anteriores.
+  entryPrice         Decimal?       @map("entry_price") @db.Decimal(18, 4)
+  exitPrice          Decimal?       @map("exit_price") @db.Decimal(18, 4)
+  plannedStop        Decimal?       @map("planned_stop") @db.Decimal(18, 4)
+  plannedTarget      Decimal?       @map("planned_target") @db.Decimal(18, 4)
+  // Excursión máxima en contra y a favor, en puntos y magnitud positiva.
+  mae                Decimal?       @db.Decimal(18, 4)
+  mfe                Decimal?       @db.Decimal(18, 4)
   pointValueSnapshot Decimal        @map("point_value_snapshot") @db.Decimal(18, 8)
   gross              Decimal        @db.Decimal(18, 2)
   commission         Decimal        @db.Decimal(18, 2)

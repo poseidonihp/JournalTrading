@@ -39,6 +39,14 @@ export class TradeDetailDrawerComponent {
   protected readonly media = computed<TradeMedia[]>(() => this.trade().media ?? []);
   protected readonly isNetPositive = computed<boolean>(() => Number(this.trade().net) >= 0);
 
+  /** Los trades anteriores a estos campos no muestran la sección de precios. */
+  protected readonly hasPriceData = computed<boolean>(() => {
+    const t = this.trade();
+    return [t.entryPrice, t.exitPrice, t.plannedStop, t.plannedTarget, t.mae, t.mfe].some(
+      value => value !== null,
+    );
+  });
+
   labelDirection(d: Trade['direction']): string {
     return enumLabels.direction[d];
   }

@@ -119,12 +119,18 @@ export class TradeFormDialogComponent implements OnInit {
       exitReason: this.fb.nonNullable.control<ExitReason>(ExitReasonEnum.options[0]),
       emotion: this.fb.nonNullable.control<Emotion>(EmotionEnum.options[0]),
       pointsTotal: this.fb.nonNullable.control(0),
+      entryPrice: new FormControl<number | null>(null),
+      exitPrice: new FormControl<number | null>(null),
+      plannedStop: new FormControl<number | null>(null),
+      plannedTarget: new FormControl<number | null>(null),
+      mae: new FormControl<number | null>(null),
+      mfe: new FormControl<number | null>(null),
       commission: new FormControl<number | null>(null),
       netOverride: new FormControl<number | null>(null),
       entryReason: this.fb.nonNullable.control(''),
       notes: this.fb.nonNullable.control(''),
     },
-    { validators: TradeFormDialogComponent.exitAfterEntryValidator },
+    { validators: TradeFormDialogComponent._exitAfterEntryValidator },
   );
 
   protected readonly enteredAtValue = signal<string>('');
@@ -201,39 +207,39 @@ export class TradeFormDialogComponent implements OnInit {
       });
     });
 
-    this.initializeForm();
+    this._initializeForm();
     this.enteredAtValue.set(this.form.controls.enteredAt.value);
 
     // Al seleccionar instrumento o cambiar el nº de contratos, recalcula la comisión configurada
-    // (por contrato × nº de contratos). Se suscribe después de initializeForm para no pisar la
+    // (por contrato × nº de contratos). Se suscribe después de _initializeForm para no pisar la
     // comisión de un trade existente al editar.
     this.form.controls.instrumentId.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.fillCommissionFromInstrument());
+      .subscribe(() => this._fillCommissionFromInstrument());
     this.form.controls.contracts.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.fillCommissionFromInstrument());
+      .subscribe(() => this._fillCommissionFromInstrument());
   }
 
   ngOnInit(): void {
-    void this.loadCatalogs();
+    void this._loadCatalogs();
   }
 
   /**
    * El diálogo se abre desde cualquier pantalla (botón global "Nuevo trade"), así que los
    * catálogos de instrumentos y tipos de trade pueden no estar cargados todavía. Se cargan al
-   * abrir y, cuando llegan, se aplican los predeterminados que `initializeForm` no pudo poner.
+   * abrir y, cuando llegan, se aplican los predeterminados que `_initializeForm` no pudo poner.
    * @private
    * @returns {Promise<void>}
    */
-  private async loadCatalogs(): Promise<void> {
+  private async _loadCatalogs(): Promise<void> {
     try {
       await Promise.all([this.instrumentsStore.load(), this.tradeTypesStore.load()]);
     } catch (e) {
       this.errorMessage.set(ApiClient.messageFromError(e));
       return;
     }
-    this.applyCatalogDefaults();
+    this._applyCatalogDefaults();
   }
 
   /**
@@ -242,7 +248,7 @@ export class TradeFormDialogComponent implements OnInit {
    * @private
    * @returns {void}
    */
-  private applyCatalogDefaults(): void {
+  private _applyCatalogDefaults(): void {
     if (this.isEdit) {
       return;
     }
@@ -257,7 +263,7 @@ export class TradeFormDialogComponent implements OnInit {
     this.formValue.set(this.form.getRawValue());
   }
 
-  private fillCommissionFromInstrument(): void {
+  private _fillCommissionFromInstrument(): void {
     const instId = this.form.controls.instrumentId.value;
     const inst = this.instrumentsStore.list().find((i) => i.id === instId);
     const contracts = Number(this.form.controls.contracts.value);
@@ -268,20 +274,26 @@ export class TradeFormDialogComponent implements OnInit {
     this.form.controls.commission.setValue(Number((per * contracts).toFixed(4)));
   }
 
-  private initializeForm(): void {
+  private _initializeForm(): void {
     const trade = this.data.trade;
     if (trade) {
       this.form.patchValue({
         accountId: trade.accountId,
         instrumentId: trade.instrumentId,
-        enteredAt: TradeFormDialogComponent.toLocalInput(trade.enteredAt),
-        exitedAt: TradeFormDialogComponent.toLocalInput(trade.exitedAt),
+        enteredAt: TradeFormDialogComponent._toLocalInput(trade.enteredAt),
+        exitedAt: TradeFormDialogComponent._toLocalInput(trade.exitedAt),
         contracts: trade.contracts,
         direction: trade.direction,
         tradeTypeId: trade.tradeTypeId,
         exitReason: trade.exitReason,
         emotion: trade.emotion,
         pointsTotal: Number(trade.pointsTotal),
+        entryPrice: TradeFormDialogComponent._toNumberOrNull(trade.entryPrice),
+        exitPrice: TradeFormDialogComponent._toNumberOrNull(trade.exitPrice),
+        plannedStop: TradeFormDialogComponent._toNumberOrNull(trade.plannedStop),
+        plannedTarget: TradeFormDialogComponent._toNumberOrNull(trade.plannedTarget),
+        mae: TradeFormDialogComponent._toNumberOrNull(trade.mae),
+        mfe: TradeFormDialogComponent._toNumberOrNull(trade.mfe),
         commission: Number(trade.commission),
         entryReason: trade.entryReason ?? '',
         notes: trade.notes ?? '',
@@ -294,7 +306,7 @@ export class TradeFormDialogComponent implements OnInit {
           : (this.accountsStore.accounts()[0]?.id ?? '');
       const instrumentId = this.instrumentsStore.list()[0]?.id ?? '';
       const tradeTypeId = this.tradeTypesStore.types()[0]?.id ?? '';
-      const nowLocal = TradeFormDialogComponent.nowAsLocalInput();
+      const nowLocal = TradeFormDialogComponent._nowAsLocalInput();
       this.form.patchValue({
         accountId,
         instrumentId,
@@ -331,7 +343,7 @@ export class TradeFormDialogComponent implements OnInit {
   onDrop(event: DragEvent): void {
     event.preventDefault();
     const files = Array.from(event.dataTransfer?.files ?? []);
-    this.addFiles(files);
+    this._addFiles(files);
   }
 
   onFiles(event: Event): void {
@@ -339,7 +351,7 @@ export class TradeFormDialogComponent implements OnInit {
     if (!input.files) {
       return;
     }
-    this.addFiles(Array.from(input.files));
+    this._addFiles(Array.from(input.files));
     input.value = '';
   }
 
@@ -352,13 +364,13 @@ export class TradeFormDialogComponent implements OnInit {
     const clipboardFiles = Array.from(event.clipboardData?.items ?? [])
       .filter(item => item.kind === 'file')
       .map(item => item.getAsFile())
-      .filter((file): file is File => file !== null && TradeFormDialogComponent.isMedia(file))
-      .map(file => TradeFormDialogComponent.withUploadName(file));
+      .filter((file): file is File => file !== null && TradeFormDialogComponent._isMedia(file))
+      .map(file => TradeFormDialogComponent._withUploadName(file));
     if (clipboardFiles.length === 0) {
       return;
     }
     event.preventDefault();
-    this.addFiles(clipboardFiles);
+    this._addFiles(clipboardFiles);
   }
 
   onDropFiles(_evt: unknown): void {
@@ -400,8 +412,8 @@ export class TradeFormDialogComponent implements OnInit {
     this.submitting.set(true);
     this.errorMessage.set(null);
     try {
-      const dto = this.buildDto();
-      const missing = TradeFormDialogComponent.findMissing(dto);
+      const dto = this._buildDto();
+      const missing = TradeFormDialogComponent._findMissing(dto);
       if (missing.length > 0) {
         throw new Error(`Datos incompletos: ${missing.join(', ')}`);
       }
@@ -427,7 +439,7 @@ export class TradeFormDialogComponent implements OnInit {
     }
   }
 
-  private addFiles(files: File[]): void {
+  private _addFiles(files: File[]): void {
     if (files.length === 0) {
       return;
     }
@@ -439,19 +451,25 @@ export class TradeFormDialogComponent implements OnInit {
     this.pending.update((curr) => [...curr, ...next]);
   }
 
-  private buildDto(): CreateTradeDto {
+  private _buildDto(): CreateTradeDto {
     const v = this.form.getRawValue();
     const dto: CreateTradeDto = {
       accountId: v.accountId,
       instrumentId: v.instrumentId,
-      enteredAt: TradeFormDialogComponent.fromLocalInput(v.enteredAt),
-      exitedAt: TradeFormDialogComponent.fromLocalInput(v.exitedAt),
+      enteredAt: TradeFormDialogComponent._fromLocalInput(v.enteredAt),
+      exitedAt: TradeFormDialogComponent._fromLocalInput(v.exitedAt),
       contracts: Number(v.contracts),
       direction: v.direction,
       tradeTypeId: v.tradeTypeId,
       exitReason: v.exitReason,
       emotion: v.emotion,
       pointsTotal: String(v.pointsTotal),
+      entryPrice: TradeFormDialogComponent._toDecimalOrNull(v.entryPrice),
+      exitPrice: TradeFormDialogComponent._toDecimalOrNull(v.exitPrice),
+      plannedStop: TradeFormDialogComponent._toDecimalOrNull(v.plannedStop),
+      plannedTarget: TradeFormDialogComponent._toDecimalOrNull(v.plannedTarget),
+      mae: TradeFormDialogComponent._toDecimalOrNull(v.mae),
+      mfe: TradeFormDialogComponent._toDecimalOrNull(v.mfe),
       commission:
         v.commission !== null && v.commission !== undefined ? String(v.commission) : undefined,
       netOverride:
@@ -462,7 +480,7 @@ export class TradeFormDialogComponent implements OnInit {
     return dto;
   }
 
-  private static findMissing(dto: CreateTradeDto): string[] {
+  private static _findMissing(dto: CreateTradeDto): string[] {
     const required: (keyof CreateTradeDto)[] = [
       'accountId',
       'instrumentId',
@@ -481,7 +499,25 @@ export class TradeFormDialogComponent implements OnInit {
     });
   }
 
-  private static isMedia(file: File): boolean {
+  /**
+   * Convierte un decimal del DTO al número que espera el input.
+   * @param value - Decimal como string, o null si el trade no lo tiene
+   * @returns {number | null}
+   */
+  private static _toNumberOrNull(value: string | null): number | null {
+    return value === null ? null : Number(value);
+  }
+
+  /**
+   * Convierte el valor de un input numérico opcional al decimal del DTO.
+   * @param value - Número del formulario; null cuando el campo quedó vacío
+   * @returns {string | null}
+   */
+  private static _toDecimalOrNull(value: number | null): string | null {
+    return value === null || Number.isNaN(value) ? null : String(value);
+  }
+
+  private static _isMedia(file: File): boolean {
     return file.type.startsWith('image/') || file.type.startsWith('video/');
   }
 
@@ -490,7 +526,7 @@ export class TradeFormDialogComponent implements OnInit {
    * la extensión del MIME solo si el nombre no la trae, y la necesita para servir el adjunto
    * con el Content-Type correcto (helmet activa `nosniff`).
    */
-  private static withUploadName(file: File): File {
+  private static _withUploadName(file: File): File {
     if (extensionPattern.test(file.name)) {
       return file;
     }
@@ -499,7 +535,7 @@ export class TradeFormDialogComponent implements OnInit {
     return new File([file], ext ? `pegado.${ext}` : 'pegado', { type: file.type });
   }
 
-  private static exitAfterEntryValidator(control: AbstractControl): ValidationErrors | null {
+  private static _exitAfterEntryValidator(control: AbstractControl): ValidationErrors | null {
     const entered = control.get('enteredAt')?.value as string | undefined;
     const exited = control.get('exitedAt')?.value as string | undefined;
     if (!entered || !exited) {
@@ -508,17 +544,17 @@ export class TradeFormDialogComponent implements OnInit {
     return exited < entered ? { exitBeforeEntry: true } : null;
   }
 
-  private static toLocalInput(iso: string): string {
+  private static _toLocalInput(iso: string): string {
     const d = new Date(iso);
     const pad = (n: number): string => n.toString().padStart(2, '0');
     return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
   }
 
-  private static fromLocalInput(local: string): string {
+  private static _fromLocalInput(local: string): string {
     return `${local}:00.000Z`;
   }
 
-  private static nowAsLocalInput(): string {
+  private static _nowAsLocalInput(): string {
     const d = new Date();
     const pad = (n: number): string => n.toString().padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
